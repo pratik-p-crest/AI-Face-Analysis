@@ -363,5 +363,145 @@ def analyze():
         "ear_report": report.get("ear_report", "")
     })
 
+
+@app.route('/eyebrows')
+def eyebrows():
+    return render_template('eyebrows.html')
+
+@app.route('/analyze_eyebrows', methods=['POST'])
+def analyze_eyebrows_api():
+    if 'front' not in request.files:
+        return jsonify({"error": "Front image must be uploaded"}), 400
+        
+    front_file = request.files['front']
+    front_stream = io.BytesIO(front_file.read())
+    try:
+        pil_image = Image.open(front_stream)
+        pil_image = ImageOps.exif_transpose(pil_image).convert('RGB')
+        image_rgb = np.ascontiguousarray(np.array(pil_image))
+    except Exception as e:
+        return jsonify({"error": f"Invalid front image format: {e}"}), 400
+
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+    detection_result = detector.detect(mp_image)
+
+    if not detection_result.face_landmarks:
+        return jsonify({"error": "No face detected in the front image"}), 400
+
+    landmarks = detection_result.face_landmarks[0]
+    h, w, _ = image_rgb.shape
+
+    def pt(idx):
+        return np.array([landmarks[idx].x * w, landmarks[idx].y * h])
+        
+    # Calculate IPD
+    p_lp = pt(468)
+    p_rp = pt(473)
+    ipd_px = np.linalg.norm(p_lp - p_rp)
+    px_to_mm = 63.0 / ipd_px
+    
+    right_inner = pt(55)
+    right_outer = pt(105)
+    right_eb_upper = [156, 70, 63, 105, 66, 107, 55, 65]
+    right_peak = min([pt(i) for i in right_eb_upper], key=lambda p: p[1])
+    right_eye = p_rp
+    
+    left_inner = pt(285)
+    left_outer = pt(334)
+    left_eb_upper = [383, 300, 293, 334, 296, 336, 285, 295]
+    left_peak = min([pt(i) for i in left_eb_upper], key=lambda p: p[1])
+    left_eye = p_lp
+    
+    right_height_px = right_eye[1] - right_peak[1]
+    left_height_px = left_eye[1] - left_peak[1]
+    avg_height_mm = ((right_height_px + left_height_px) / 2.0) * px_to_mm
+    
+    right_eye_width = np.linalg.norm(pt(133) - pt(33))
+    left_eye_width = np.linalg.norm(pt(362) - pt(263))
+    avg_eye_width = (right_eye_width + left_eye_width) / 2.0
+    avg_height_px = (right_height_px + left_height_px) / 2.0
+    elevation_ratio = avg_height_px / avg_eye_width
+    
+    def calc_angle(apex, p1, p2):
+        v1 = p1 - apex
+        v2 = p2 - apex
+        norm1 = np.linalg.norm(v1)
+        norm2 = np.linalg.norm(v2)
+        if norm1 == 0 or norm2 == 0:
+            return 180.0
+        cosine_angle = np.dot(v1, v2) / (norm1 * norm2)
+        cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
+        return float(np.degrees(np.arccos(cosine_angle)))
+        
+    right_angle = calc_angle(right_peak, right_inner, right_outer)
+    left_angle = calc_angle(left_peak, left_inner, left_outer)
+    avg_angle = (right_angle + left_angle) / 2.0
+
+    # Classifications
+    if avg_height_mm > 22.0:
+        position = "High Set"
+    elif avg_height_mm < 18.0:
+        position = "Low Set"
+    else:
+        position = "Average Set"
+        
+    right_tilt = right_inner[1] - right_outer[1]
+    left_tilt = left_inner[1] - left_outer[1]
+    avg_tilt = (right_tilt + left_tilt) / 2.0
+    if avg_tilt > 5:
+        tilt = "Upturned"
+    elif avg_tilt < -5:
+        tilt = "Downturned"
+    else:
+        tilt = "Straight"
+        
+    if avg_angle < 135:
+        shape = "Arched"
+    elif avg_angle > 155:
+        shape = "Straight"
+    else:
+        shape = "Rounded"
+        
+    virility = "Moderate"
+
+    # Cropping
+    right_eyebrow_idxs = [46, 52, 53, 55, 63, 65, 66, 70, 105, 107]
+    left_eyebrow_idxs = [276, 282, 283, 285, 293, 295, 296, 300, 334, 336]
+    
+    def crop_eyebrow(image, landmarks, idxs, w, h, padding_x=20, padding_y=20):
+        points = np.array([(int(landmarks[i].x * w), int(landmarks[i].y * h)) for i in idxs])
+        x_min, y_min = np.min(points, axis=0)
+        x_max, y_max = np.max(points, axis=0)
+        x_min = max(0, x_min - padding_x)
+        y_min = max(0, y_min - padding_y)
+        x_max = min(w, x_max + padding_x)
+        y_max = min(h, y_max + padding_y)
+        return image[y_min:y_max, x_min:x_max]
+
+    r_eyebrow_crop = crop_eyebrow(image_rgb, landmarks, right_eyebrow_idxs, w, h)
+    l_eyebrow_crop = crop_eyebrow(image_rgb, landmarks, left_eyebrow_idxs, w, h)
+
+    def encode_img(img):
+        bgr_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        _, buffer = cv2.imencode('.jpg', bgr_img)
+        return base64.b64encode(buffer).decode('utf-8')
+
+    base64_r_brow = encode_img(r_eyebrow_crop)
+    base64_l_brow = encode_img(l_eyebrow_crop)
+
+    return jsonify({
+        "vertical_height_mm": round(float(avg_height_mm), 2),
+        "elevation_ratio": round(float(elevation_ratio), 2),
+        "apex_angle_deg": round(float(avg_angle), 2),
+        "position": position,
+        "tilt": tilt,
+        "shape": shape,
+        "virility": virility,
+        "r_brow_image": f"data:image/jpeg;base64,{base64_r_brow}",
+        "l_brow_image": f"data:image/jpeg;base64,{base64_l_brow}"
+    })
+
+
 if __name__ == '__main__':
+
     app.run(host='0.0.0.0', debug=True, port=5000)

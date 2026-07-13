@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eyebrow Aesthetic Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-highlight: #94a3b8;
+            --border-color: #f1f5f9;
+            --bar-bg: #e2e8f0;
+            --bar-fill: #94a3b8;
+            --marker-color: #1e293b;
+            --tooltip-bg: #64748b;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 32px 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-menu li {
+            padding: 12px 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-menu li:hover {
+            color: var(--text-primary);
+        }
+
+        .sidebar-menu li.has-children {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .sidebar-menu li.has-children::before {
+            content: "v"; /* simple dropdown icon */
+            margin-right: 12px;
+            font-size: 10px;
+            font-family: monospace;
+            transform: scale(1.5, 0.8);
+        }
+
+        .sidebar-menu li.collapsed::before {
+            content: ">";
+        }
+
+        .sidebar-submenu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-submenu li {
+            padding: 10px 24px 10px 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-submenu li:hover {
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .sidebar-submenu li.active {
+            background: #ffffff;
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-weight: 500;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header h1 span {
+            color: var(--text-highlight);
+        }
+
+        .header p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+        }
+        
+        .header p strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .upload-row {
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background-color: var(--text-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* IMAGE CARD */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            min-height: 200px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        
+        .image-card img {
+            max-width: 250px;
+            height: auto;
+            border-radius: 100px;
+        }
+
+        /* BOTTOM SPLIT */
+        .bottom-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .grid-header {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* CLASSIFICATION CARD */
+        .class-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px 20px;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .class-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .class-label {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-highlight);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+            font-weight: 600;
+        }
+
+        .class-value {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* TOOLTIP */
+        .class-card .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: var(--tooltip-bg);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            z-index: 10;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .class-card .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--tooltip-bg) transparent transparent transparent;
+        }
+        
+        .class-card .tooltip .tooltip-title {
+            font-family: monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .class-card:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* CAROUSEL CONTAINER */
+        .carousel-container {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            overflow: hidden;
+            min-height: 350px;
+        }
+        
+        .carousel-nav {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: #cbd5e1;
+            font-size: 14px;
+            z-index: 20;
+            user-select: none;
+        }
+        
+        .carousel-nav .arrow {
+            cursor: pointer;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+        .carousel-nav .arrow:hover {
+            color: var(--text-primary);
+        }
+        
+        .carousel-nav .dot {
+            width: 6px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .carousel-nav .dot.active {
+            background: #94a3b8;
+        }
+
+        .range-card {
+            padding: 24px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--card-bg);
+        }
+        
+        .range-card.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+        .range-card.prev {
+            transform: translateX(-100%);
+        }
+        .range-card.next {
+            transform: translateX(100%);
+        }
+
+        .range-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .range-card h3 .highlight {
+            color: var(--text-highlight);
+        }
+
+        .range-card p.desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+            line-height: 1.5;
+            max-width: 85%;
+        }
+
+        .range-box {
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 24px;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .range-box-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-highlight);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .range-value {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+        
+        .range-value span {
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 2px;
+            color: var(--text-primary);
+        }
+
+        .slider-container {
+            position: relative;
+            height: 40px;
+        }
+
+        .slider-track {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--bar-bg);
+            border-radius: 2px;
+        }
+
+        .slider-fill {
+            position: absolute;
+            bottom: 20px;
+            height: 4px;
+            background: var(--bar-fill);
+            border-radius: 2px;
+        }
+
+        .slider-marker {
+            position: absolute;
+            bottom: 24px;
+            width: 4px;
+            height: 4px;
+            background: var(--marker-color);
+            transform: translateX(-50%);
+            transition: left 0.5s ease-out;
+        }
+        
+        .slider-marker::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 12px;
+            background: var(--bar-fill);
+        }
+
+        .slider-labels {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .slider-labels span {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        /* Result container hiding */
+        #results {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="collapsed">Introduction</li>
+        <li class="collapsed">Facial Assessments</li>
+        <li class="has-children">Features Analysis</li>
+        <ul class="sidebar-submenu">
+            <li class="active">Eyebrows</li>
+            <li>Eyes</li>
+            <li>Nose</li>
+            <li>Lips</li>
+            <li>Cheeks</li>
+            <li>Jaw</li>
+            <li>Chin</li>
+            <li>Hair</li>
+            <li>Smile</li>
+            <li>Neck</li>
+            <li>Ear</li>
+            <li>Skin</li>
+        </ul>
+        <li class="collapsed">Protocol</li>
+    </ul>
+</div>
+
+<div class="main-content">
+    
+    <div class="header">
+        <h1>Summary of your <span>eyebrows</span></h1>
+        <p>Eyebrows are one of the most important facial features and play a key role in expressing <strong>emotion</strong>.</p>
+    </div>
+
+    <div class="upload-row">
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Upload Face Image</button>
+        <span id="loading" style="display:none; font-size:14px; margin-left:12px; color:var(--text-secondary);">Analyzing...</span>
+    </div>
+
+    <div id="results">
+        
+        <!-- Top Image Card -->
+        <div class="image-card">
+            <img id="rBrowImage" src="" alt="Right Brow">
+            <img id="lBrowImage" src="" alt="Left Brow">
+        </div>
+
+        <!-- Bottom Split -->
+        <div class="bottom-split">
+            
+            <!-- Left Side: 2x2 Grid -->
+            <div>
+                <div class="grid-header">Summary of your eyebrows</div>
+                <div class="metric-grid">
+                    
+                    <div class="class-card">
+                        <div class="tooltip">
+                            <div class="tooltip-title">EYEBROW POSITION</div>
+                            How close (low-set) or far (high-set) the eyebrows are positioned from the eyes.
+                        </div>
+                        <div class="class-label">EYEBROW POSITION</div>
+                        <div class="class-value" id="valPosition">--</div>
+                    </div>
+                    
+                    <div class="class-card">
+                        <div class="tooltip">
+                            <div class="tooltip-title">EYEBROW TILT</div>
+                            The angle and direction of your eyebrows.
+                        </div>
+                        <div class="class-label">EYEBROW TILT</div>
+                        <div class="class-value" id="valTilt">--</div>
+                    </div>
+
+                    <div class="class-card">
+                        <div class="tooltip">
+                            <div class="tooltip-title">EYEBROW VIRILITY</div>
+                            The strength and prominence of your eyebrows.
+                        </div>
+                        <div class="class-label">EYEBROW VIRILITY</div>
+                        <div class="class-value" id="valVirility">--</div>
+                    </div>
+
+                    <div class="class-card">
+                        <div class="tooltip">
+                            <div class="tooltip-title">EYEBROW SHAPE</div>
+                            The overall arch and contour of your eyebrows.
+                        </div>
+                        <div class="class-label">EYEBROW SHAPE</div>
+                        <div class="class-value" id="valShape">--</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Side: Carousel Container -->
+            <div>
+                <div class="carousel-container">
+                    <div class="carousel-nav">
+                        <div class="arrow" onclick="prevSlide()">&lt;</div>
+                        <div class="dot active" onclick="goToSlide(0)"></div> 
+                        <div class="dot" onclick="goToSlide(1)"></div> 
+                        <div class="dot" onclick="goToSlide(2)"></div> 
+                        <div class="arrow" onclick="nextSlide()">&gt;</div>
+                    </div>
+                    
+                    <!-- Slide 1: Height -->
+                    <div class="range-card active" id="slide-0">
+                        <h3>Noticeably <span class="highlight">higher</span> than typical range</h3>
+                        <p class="desc">Your brow peak sits <strong>higher</strong> than usual, giving the upper eyelid area a more <strong>open</strong> and lifted appearance that emphasizes vertical brow height.</p>
+                        
+                        <div class="range-box">
+                            <div class="range-box-header">
+                                <div>BROW PEAK VERTICAL HEIGHT</div>
+                                <div>30-39 - WHITE - MALE</div>
+                            </div>
+                            
+                            <div class="range-value" id="valHeight">--<span>mm</span></div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-track"></div>
+                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
+                                <div class="slider-marker" id="markerHeight" style="left: 50%;"></div>
+                                
+                                <div class="slider-labels" style="padding: 0 10%;">
+                                    <div>15.83<span>mm</span></div>
+                                    <div>21.65<span>mm</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: Elevation -->
+                    <div class="range-card next" id="slide-1">
+                        <h3>Markedly <span class="highlight">greater</span> than common elevation</h3>
+                        <p class="desc">You show a <strong>stronger</strong> brow lift relative to eye width, creating a more <strong>pronounced</strong> vertical emphasis above the eye.</p>
+                        
+                        <div class="range-box">
+                            <div class="range-box-header">
+                                <div>BROW ELEVATION RATIO</div>
+                                <div>30-39 - WHITE - MALE</div>
+                            </div>
+                            
+                            <div class="range-value" id="valElevation">--</div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-track"></div>
+                                <div class="slider-fill" style="left: 20%; right: 20%;"></div>
+                                <div class="slider-marker" id="markerElevation" style="left: 50%;"></div>
+                                
+                                <div class="slider-labels" style="padding: 0 15%;">
+                                    <div>0.98</div>
+                                    <div>1.22</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 3: Angle -->
+                    <div class="range-card next" id="slide-2">
+                        <h3>Noticeably <span class="highlight">sharper</span> than average angle</h3>
+                        <p class="desc">Your brow apex forms a <strong>sharper</strong> angle, giving the brow a more <strong>defined</strong> and angular peak rather than a gently curved contour.</p>
+                        
+                        <div class="range-box">
+                            <div class="range-box-header">
+                                <div>BROW APEX ANGLE</div>
+                                <div>30-39 - WHITE - MALE</div>
+                            </div>
+                            
+                            <div class="range-value" id="valAngle">--<span>°</span></div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-track"></div>
+                                <div class="slider-fill" style="left: 20%; right: 20%;"></div>
+                                <div class="slider-marker" id="markerAngle" style="left: 50%;"></div>
+                                
+                                <div class="slider-labels" style="padding: 0 15%;">
+                                    <div>138.98<span>°</span></div>
+                                    <div>146.54<span>°</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Carousel Logic
+    let currentSlide = 0;
+    const totalSlides = 3;
+
+    function updateCarousel() {
+        // Update slides
+        for (let i = 0; i < totalSlides; i++) {
+            const slide = document.getElementById(`slide-${i}`);
+            slide.classList.remove('active', 'prev', 'next');
+            if (i === currentSlide) {
+                slide.classList.add('active');
+            } else if (i < currentSlide) {
+                slide.classList.add('prev');
+            } else {
+                slide.classList.add('next');
+            }
+        }
+        
+        // Update dots
+        const dots = document.querySelectorAll('.carousel-nav .dot');
+        dots.forEach((dot, index) => {
+            if (index === currentSlide) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateCarousel();
+    }
+
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateCarousel();
+    }
+
+    function goToSlide(index) {
+        currentSlide = index;
+        updateCarousel();
+    }
+
+
+    // Upload Logic
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('front', file);
+
+        document.getElementById('loading').style.display = 'inline-block';
+        document.getElementById('results').style.display = 'none';
+        
+        try {
+            const response = await fetch('/analyze_eyebrows', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Fill text values
+            document.getElementById('valPosition').innerText = data.position;
+            document.getElementById('valTilt').innerText = data.tilt;
+            document.getElementById('valVirility').innerText = data.virility;
+            document.getElementById('valShape').innerText = data.shape;
+
+            document.getElementById('valHeight').innerHTML = `${data.vertical_height_mm}<span>mm</span>`;
+            document.getElementById('valElevation').innerHTML = `${data.elevation_ratio}`;
+            document.getElementById('valAngle').innerHTML = `${data.apex_angle_deg}<span>°</span>`;
+
+            // Images
+            document.getElementById('rBrowImage').src = data.r_brow_image;
+            document.getElementById('lBrowImage').src = data.l_brow_image;
+
+            // Slider Calculation
+            // Height: Map 15.83 to 15% and 21.65 to 85%
+            let hPercent = 15 + ((data.vertical_height_mm - 15.83) / (21.65 - 15.83)) * 70;
+            document.getElementById('markerHeight').style.left = `${Math.max(0, Math.min(100, hPercent))}%`;
+
+            // Elevation: Map 0.98 to 20% and 1.22 to 80%
+            let ePercent = 20 + ((data.elevation_ratio - 0.98) / (1.22 - 0.98)) * 60;
+            document.getElementById('markerElevation').style.left = `${Math.max(0, Math.min(100, ePercent))}%`;
+
+            // Angle: Map 138.98 to 20% and 146.54 to 80%
+            let aPercent = 20 + ((data.apex_angle_deg - 138.98) / (146.54 - 138.98)) * 60;
+            document.getElementById('markerAngle').style.left = `${Math.max(0, Math.min(100, aPercent))}%`;
+
+            // Display Results
+            document.getElementById('results').style.display = 'block';
+
+        } catch (err) {
+            alert('Error analyzing image: ' + err.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
