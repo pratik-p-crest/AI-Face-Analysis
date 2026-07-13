@@ -1,0 +1,161 @@
+{
+  "frontal_image": "C:/Users/PratikJPatel/Downloads/360_F_276114144_xyAwCmx6IraojhvC2l9cNQEYAx6d28Nq.jpg",
+  "profile_image": "C:/Users/PratikJPatel/Downloads/baf3cc0d-14a6-4e4f-a48b-b52d9a344c9b.png",
+  "frontal": {
+    "alignment": {
+      "metric": "Chin Alignment",
+      "result": "CENTRALLY ALIGNED",
+      "score": 100,
+      "deviation_pct": 0.94,
+      "chin_tip": [
+        282,
+        289
+      ],
+      "midline_x": 280.5
+    },
+    "width": {
+      "metric": "Chin Width (Breadth)",
+      "result": "NARROW",
+      "score": 50,
+      "chin_to_mouth_ratio": 0.79,
+      "chin_to_face_ratio": 0.308,
+      "chin_width_px": 49.0,
+      "chin_left": [
+        257,
+        283
+      ],
+      "chin_right": [
+        306,
+        283
+      ]
+    },
+    "height": {
+      "metric": "Chin Height",
+      "result": "LONG LOWER THIRD",
+      "score": 60,
+      "lower_third_ratio": 0.407,
+      "chin_tip": [
+        282,
+        289
+      ],
+      "lower_lip_bottom": [
+        282,
+        253
+      ],
+      "forehead_top": [
+        285,
+        95
+      ]
+    },
+    "jaw_shape": {
+      "metric": "Jaw Shape",
+      "result": "V-SHAPED JAW",
+      "score": 75,
+      "description": "Strong taper \u2014 pointed V-shape jaw.",
+      "taper_ratio": 0.467,
+      "jaw_left": [
+        220,
+        246
+      ],
+      "jaw_right": [
+        340,
+        248
+      ],
+      "chin_left": [
+        257,
+        283
+      ],
+      "chin_right": [
+        306,
+        283
+      ]
+    },
+    "symmetry": {
+      "metric": "Chin Symmetry",
+      "result": "MILDLY ASYMMETRIC",
+      "score": 80,
+      "asymmetry_pct": 5.86
+    }
+  },
+  "profile": {
+    "forward_projection": {
+      "metric": "Forward Projection (Profile)",
+      "result": "IDEAL PROJECTION",
+      "score": 100,
+      "proj_ratio": -0.039,
+      "e_plane_dist_px": -2.7,
+      "nose_tip": [
+        951,
+        561
+      ],
+      "chin_tip": [
+        910,
+        769
+      ],
+      "nasion": [
+        930,
+        366
+      ],
+      "lower_lip": [
+        925,
+        679
+      ],
+      "upper_lip": [
+        933,
+        618
+      ]
+    },
+    "nasomental": {
+      "metric": "Nasomental Angle (Profile)",
+      "result": "OBTUSE \u2014 RETRUDED CHIN",
+      "score": 70,
+      "angle_deg": 146.3,
+      "nose_tip": [
+        951,
+        561
+      ],
+      "nose_base": [
+        936,
+        578
+      ],
+      "chin_tip": [
+        910,
+        769
+      ]
+    },
+    "chin_lip": {
+      "metric": "Chin-Lip Relationship (Profile)",
+      "result": "LIP ANTERIOR TO CHIN (lip prominent)",
+      "score": 70,
+      "horizontal_ratio": 0.029,
+      "vertical_ratio": 0.175,
+      "lower_lip": [
+        925,
+        679
+      ],
+      "chin_tip": [
+        910,
+        769
+      ]
+    },
+    "convexity": {
+      "metric": "Facial Profile Convexity",
+      "result": "STRAIGHT PROFILE (ideal)",
+      "score": 100,
+      "profile_angle_deg": 170.6,
+      "glabella": [
+        930,
+        366
+      ],
+      "nose_base": [
+        936,
+        578
+      ],
+      "chin_tip": [
+        910,
+        769
+      ]
+    }
+  },
+  "overall_score": 78.3
+}
