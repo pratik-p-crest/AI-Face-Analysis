@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 """
 Face Parsing & Metrics Web App
 Standalone Flask app based on the face-parsing-with-metrics-structured notebook.
@@ -40,7 +43,7 @@ LABEL_COLORS = {
 
 # ====== INIT MODELS ======
 print("Loading SegFormer face parsing model...")
-os.environ["HF_TOKEN"] = "YOUR_HF_TOKEN"
+os.environ["HF_TOKEN"] = os.environ.get("HF_TOKEN")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 segformer_processor = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing", token=os.environ["HF_TOKEN"])
 segformer_model = SegformerForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing", token=os.environ["HF_TOKEN"])
