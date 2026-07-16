@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eyebrow Aesthetic Analysis</title>
+    <title>Eye Aesthetic Analysis</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -30,7 +30,6 @@
             overflow: hidden;
         }
 
-        /* SIDEBAR */
         .sidebar {
             width: 250px;
             background: var(--sidebar-bg);
@@ -54,10 +53,8 @@
             display: flex;
             align-items: center;
         }
-        
-        .sidebar-menu li:hover {
-            color: var(--text-primary);
-        }
+
+        .sidebar-menu li:hover { color: var(--text-primary); }
 
         .sidebar-menu li.has-children {
             font-weight: 500;
@@ -65,16 +62,13 @@
         }
 
         .sidebar-menu li.has-children::before {
-            content: "v"; /* simple dropdown icon */
+            content: "v";
             margin-right: 12px;
             font-size: 10px;
             font-family: monospace;
-            transform: scale(1.5, 0.8);
         }
 
-        .sidebar-menu li.collapsed::before {
-            content: ">";
-        }
+        .sidebar-menu li.collapsed::before { content: ">"; }
 
         .sidebar-submenu {
             list-style: none;
@@ -101,7 +95,6 @@
             font-weight: 500;
         }
 
-        /* MAIN CONTENT */
         .main-content {
             flex-grow: 1;
             padding: 40px;
@@ -115,24 +108,20 @@
             letter-spacing: -0.5px;
         }
 
-        .header h1 span {
-            color: var(--text-highlight);
-        }
+        .header h1 span { color: var(--text-highlight); }
 
         .header p {
             font-size: 15px;
             color: var(--text-secondary);
             margin: 0 0 32px 0;
         }
-        
+
         .header p strong {
             color: var(--text-primary);
             font-weight: 600;
         }
 
-        .upload-row {
-            margin-bottom: 20px;
-        }
+        .upload-row { margin-bottom: 20px; }
 
         .upload-btn {
             background-color: var(--text-primary);
@@ -145,7 +134,6 @@
             cursor: pointer;
         }
 
-        /* IMAGE CARD */
         .image-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -156,23 +144,22 @@
             justify-content: center;
             align-items: center;
             gap: 60px;
-            min-height: 200px;
+            min-height: 180px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
-        
+
         .image-card img {
-            max-width: 250px;
+            max-width: 200px;
             height: auto;
-            border-radius: 100px;
+            border-radius: 50%;
         }
 
-        /* BOTTOM SPLIT */
         .bottom-split {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 24px;
         }
-        
+
         .grid-header {
             font-size: 18px;
             font-weight: 500;
@@ -185,7 +172,6 @@
             gap: 16px;
         }
 
-        /* CLASSIFICATION CARD */
         .class-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -197,9 +183,7 @@
             cursor: default;
         }
 
-        .class-card:hover {
-            border-color: #cbd5e1;
-        }
+        .class-card:hover { border-color: #cbd5e1; }
 
         .class-label {
             font-family: monospace;
@@ -217,7 +201,6 @@
             color: var(--text-primary);
         }
 
-        /* TOOLTIP */
         .class-card .tooltip {
             position: absolute;
             bottom: 100%;
@@ -247,7 +230,7 @@
             border-style: solid;
             border-color: var(--tooltip-bg) transparent transparent transparent;
         }
-        
+
         .class-card .tooltip .tooltip-title {
             font-family: monospace;
             font-size: 10px;
@@ -263,7 +246,6 @@
             transform: translateX(-50%) translateY(-5px);
         }
 
-        /* CAROUSEL CONTAINER */
         .carousel-container {
             position: relative;
             background: var(--card-bg);
@@ -273,7 +255,7 @@
             overflow: hidden;
             min-height: 350px;
         }
-        
+
         .carousel-nav {
             position: absolute;
             top: 24px;
@@ -286,16 +268,15 @@
             z-index: 20;
             user-select: none;
         }
-        
+
         .carousel-nav .arrow {
             cursor: pointer;
             padding: 0 4px;
             transition: color 0.2s;
         }
-        .carousel-nav .arrow:hover {
-            color: var(--text-primary);
-        }
-        
+
+        .carousel-nav .arrow:hover { color: var(--text-primary); }
+
         .carousel-nav .dot {
             width: 6px;
             height: 6px;
@@ -303,9 +284,8 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        .carousel-nav .dot.active {
-            background: #94a3b8;
-        }
+
+        .carousel-nav .dot.active { background: #94a3b8; }
 
         .range-card {
             padding: 24px;
@@ -320,28 +300,23 @@
             pointer-events: none;
             background: var(--card-bg);
         }
-        
+
         .range-card.active {
             opacity: 1;
             pointer-events: auto;
             transform: translateX(0);
         }
-        .range-card.prev {
-            transform: translateX(-100%);
-        }
-        .range-card.next {
-            transform: translateX(100%);
-        }
+
+        .range-card.prev { transform: translateX(-100%); }
+        .range-card.next { transform: translateX(100%); }
 
         .range-card h3 {
             margin: 0 0 8px 0;
             font-size: 18px;
             font-weight: 500;
         }
-        
-        .range-card h3 .highlight {
-            color: var(--text-highlight);
-        }
+
+        .range-card h3 .highlight { color: var(--text-highlight); }
 
         .range-card p.desc {
             font-size: 13px;
@@ -357,7 +332,7 @@
             padding: 24px;
             border: 1px solid #f1f5f9;
         }
-        
+
         .range-box-header {
             display: flex;
             justify-content: space-between;
@@ -375,7 +350,7 @@
             font-weight: 600;
             margin-bottom: 40px;
         }
-        
+
         .range-value span {
             font-size: 14px;
             font-weight: 500;
@@ -415,7 +390,7 @@
             transform: translateX(-50%);
             transition: left 0.5s ease-out;
         }
-        
+
         .slider-marker::after {
             content: '';
             position: absolute;
@@ -437,16 +412,13 @@
             font-size: 12px;
             font-weight: 600;
         }
+
         .slider-labels span {
             font-size: 10px;
             font-weight: 500;
         }
 
-        /* Result container hiding */
-        #results {
-            display: none;
-        }
-
+        #results { display: block; }
     </style>
 </head>
 <body>
@@ -459,8 +431,8 @@
         <ul class="sidebar-submenu">
             <li onclick="window.location.href='/'">Dashboard</li>
             
-            <li class="active">Eyebrows</li>
-            <li onclick="window.location.href='/eyes'">Eyes</li>
+            <li onclick="window.location.href='/eyebrows'">Eyebrows</li>
+            <li class="active" onclick="window.location.href='/eyes'">Eyes</li>
             <li onclick="window.location.href='/nose'">Nose</li>
             <li onclick="window.location.href='/lips'">Lips</li>
             <li onclick="window.location.href='/cheeks'">Cheeks</li>
@@ -477,153 +449,142 @@
 </div>
 
 <div class="main-content">
-    
+
     <div class="header">
-        <h1>Summary of your <span>eyebrows</span></h1>
-        <p>Eyebrows are one of the most important facial features and play a key role in expressing <strong>emotion</strong>.</p>
+        <h1>An overview of your <span>cheeks</span></h1>
+        <p>The cheeks frame the face through their size, fat volume, and underlying bone structure. to your soul, and their characteristics play a crucial role in <strong>facial expression</strong> and aesthetics.</p>
     </div>
 
     
 
     <div id="results">
-        
-        <!-- Top Image Card -->
+
         <div class="image-card">
-            <img id="rBrowImage" src="" alt="Right Brow">
-            <img id="lBrowImage" src="" alt="Left Brow">
+            <img id="cheeksImage" src="" alt="Right Eye">
+            
         </div>
 
-        <!-- Bottom Split -->
         <div class="bottom-split">
-            
-            <!-- Left Side: 2x2 Grid -->
+
+            <!-- Left: 2x2 Grid -->
             <div>
-                <div class="grid-header">Summary of your eyebrows</div>
+                <div class="grid-header">Summary of your cheeks</div>
                 <div class="metric-grid">
-                    
+
                     <div class="class-card">
                         <div class="tooltip">
-                            <div class="tooltip-title">EYEBROW POSITION</div>
-                            How close (low-set) or far (high-set) the eyebrows are positioned from the eyes.
+                            <div class="tooltip-title">CHEEK WIDTH</div>
+                            The canthal tilt angle of your palpebral fissure — whether your outer eye corners sit higher or lower than the inner corners.
                         </div>
-                        <div class="class-label">EYEBROW POSITION</div>
-                        <div class="class-value" id="valPosition">--</div>
-                    </div>
-                    
-                    <div class="class-card">
-                        <div class="tooltip">
-                            <div class="tooltip-title">EYEBROW TILT</div>
-                            The angle and direction of your eyebrows.
-                        </div>
-                        <div class="class-label">EYEBROW TILT</div>
-                        <div class="class-value" id="valTilt">--</div>
+                        <div class="class-label">CHEEK WIDTH</div>
+                        <div class="class-value" id="valWidthC">--</div>
                     </div>
 
                     <div class="class-card">
                         <div class="tooltip">
-                            <div class="tooltip-title">EYEBROW VIRILITY</div>
-                            The strength and prominence of your eyebrows.
+                            <div class="tooltip-title">CHEEKBONE POSITION</div>
+                            How much of your upper eyelid skin is visible between the crease and lash line.
                         </div>
-                        <div class="class-label">EYEBROW VIRILITY</div>
-                        <div class="class-value" id="valVirility">--</div>
+                        <div class="class-label">CHEEKBONE POSITION</div>
+                        <div class="class-value" id="valPos">--</div>
                     </div>
 
                     <div class="class-card">
                         <div class="tooltip">
-                            <div class="tooltip-title">EYEBROW SHAPE</div>
-                            The overall arch and contour of your eyebrows.
+                            <div class="tooltip-title">CHEEK FULLNESS</div>
+                            The colour and clarity of the visible white area of your eyes.
                         </div>
-                        <div class="class-label">EYEBROW SHAPE</div>
-                        <div class="class-value" id="valShape">--</div>
+                        <div class="class-label">CHEEK FULLNESS</div>
+                        <div class="class-value" id="valFullness">--</div>
+                    </div>
+
+                    <div class="class-card">
+                        <div class="tooltip">
+                            <div class="tooltip-title">CHEEKBONE HEIGHT</div>
+                            The darkness or discolouration below the lower eyelid compared to the surrounding cheek skin.
+                        </div>
+                        <div class="class-label">CHEEKBONE HEIGHT</div>
+                        <div class="class-value" id="valHeightC">--</div>
                     </div>
 
                 </div>
             </div>
 
-            <!-- Right Side: Carousel Container -->
+            <!-- Right: Carousel -->
             <div>
                 <div class="carousel-container">
                     <div class="carousel-nav">
                         <div class="arrow" onclick="prevSlide()">&lt;</div>
-                        <div class="dot active" onclick="goToSlide(0)"></div> 
-                        <div class="dot" onclick="goToSlide(1)"></div> 
-                        <div class="dot" onclick="goToSlide(2)"></div> 
+                        <div class="dot active" onclick="goToSlide(0)"></div>
+                        <div class="dot" onclick="goToSlide(1)"></div>
+                        <div class="dot" onclick="goToSlide(2)"></div>
                         <div class="arrow" onclick="nextSlide()">&gt;</div>
                     </div>
-                    
-                    <!-- Slide 1: Height -->
+
+                    <!-- Slide 1: Lower Eyelid Curvature -->
                     <div class="range-card active" id="slide-0">
-                        <h3>Noticeably <span class="highlight">higher</span> than typical range</h3>
-                        <p class="desc">Your brow peak sits <strong>higher</strong> than usual, giving the upper eyelid area a more <strong>open</strong> and lifted appearance that emphasizes vertical brow height.</p>
-                        
+                        <h3 id="curvTitle">Slightly <span class="highlight">lower</span> curvature than the common range</h3>
+                        <p class="desc">Your lower eyelids appear a bit <strong>straighter</strong>, giving the eyes a <strong>firmer</strong> and less rounded lower contour while still looking natural.</p>
+
                         <div class="range-box">
                             <div class="range-box-header">
-                                <div>BROW PEAK VERTICAL HEIGHT</div>
+                                <div>LOWER EYELID CURVATURE</div>
                                 <div>30-39 - WHITE - MALE</div>
                             </div>
-                            
-                            <div class="range-value" id="valHeight">--<span>mm</span></div>
-                            
+                            <div class="range-value" id="valCurvature">--<span>Total Bending (k)</span></div>
                             <div class="slider-container">
                                 <div class="slider-track"></div>
                                 <div class="slider-fill" style="left: 15%; right: 15%;"></div>
-                                <div class="slider-marker" id="markerHeight" style="left: 50%;"></div>
-                                
+                                <div class="slider-marker" id="markerCurv" style="left: 50%;"></div>
                                 <div class="slider-labels" style="padding: 0 10%;">
-                                    <div>15.83<span>mm</span></div>
-                                    <div>21.65<span>mm</span></div>
+                                    <div>1.0<span> Total Bending (k)</span></div>
+                                    <div>2.5<span> Total Bending (k)</span></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Slide 2: Elevation -->
+                    <!-- Slide 2: Eye Aspect Ratio -->
                     <div class="range-card next" id="slide-1">
-                        <h3>Markedly <span class="highlight">greater</span> than common elevation</h3>
-                        <p class="desc">You show a <strong>stronger</strong> brow lift relative to eye width, creating a more <strong>pronounced</strong> vertical emphasis above the eye.</p>
-                        
+                        <h3>Slightly <span class="highlight">higher</span> than typical almond-like shapes</h3>
+                        <p class="desc">You show <strong>mildly increased almondness</strong>, giving the eyes a <strong>subtly more open</strong> and defined vertical profile without appearing exaggerated.</p>
+
                         <div class="range-box">
                             <div class="range-box-header">
-                                <div>BROW ELEVATION RATIO</div>
+                                <div>EYE ASPECT RATIO (ALMONDNESS RATIO)</div>
                                 <div>30-39 - WHITE - MALE</div>
                             </div>
-                            
-                            <div class="range-value" id="valElevation">--</div>
-                            
+                            <div class="range-value" id="valEAR">--</div>
                             <div class="slider-container">
                                 <div class="slider-track"></div>
-                                <div class="slider-fill" style="left: 20%; right: 20%;"></div>
-                                <div class="slider-marker" id="markerElevation" style="left: 50%;"></div>
-                                
-                                <div class="slider-labels" style="padding: 0 15%;">
-                                    <div>0.98</div>
-                                    <div>1.22</div>
+                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
+                                <div class="slider-marker" id="markerEAR" style="left: 50%;"></div>
+                                <div class="slider-labels" style="padding: 0 10%;">
+                                    <div>0.25</div>
+                                    <div>0.45</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Slide 3: Angle -->
+                    <!-- Slide 3: Eye Spacing Ratio -->
                     <div class="range-card next" id="slide-2">
-                        <h3>Noticeably <span class="highlight">sharper</span> than average angle</h3>
-                        <p class="desc">Your brow apex forms a <strong>sharper</strong> angle, giving the brow a more <strong>defined</strong> and angular peak rather than a gently curved contour.</p>
-                        
+                        <h3>Noticeably <span class="highlight">higher</span> than the usual spacing range</h3>
+                        <p class="desc">You have <strong>relatively wider spacing</strong> between the eyes, which makes the central face appear <strong>more expansive</strong> and shifts visual focus slightly outward.</p>
+
                         <div class="range-box">
                             <div class="range-box-header">
-                                <div>BROW APEX ANGLE</div>
+                                <div>EYE SPACING RATIO (INTERPUPILLARY / FACIAL WIDTH)</div>
                                 <div>30-39 - WHITE - MALE</div>
                             </div>
-                            
-                            <div class="range-value" id="valAngle">--<span>°</span></div>
-                            
+                            <div class="range-value" id="valSpacing">--</div>
                             <div class="slider-container">
                                 <div class="slider-track"></div>
-                                <div class="slider-fill" style="left: 20%; right: 20%;"></div>
-                                <div class="slider-marker" id="markerAngle" style="left: 50%;"></div>
-                                
-                                <div class="slider-labels" style="padding: 0 15%;">
-                                    <div>138.98<span>°</span></div>
-                                    <div>146.54<span>°</span></div>
+                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
+                                <div class="slider-marker" id="markerSpacing" style="left: 50%;"></div>
+                                <div class="slider-labels" style="padding: 0 10%;">
+                                    <div>0.40</div>
+                                    <div>0.50</div>
                                 </div>
                             </div>
                         </div>
@@ -633,7 +594,6 @@
             </div>
 
         </div>
-
     </div>
 </div>
 
@@ -642,45 +602,20 @@
     const totalSlides = 3;
 
     function updateCarousel() {
-        // Update slides
         for (let i = 0; i < totalSlides; i++) {
             const slide = document.getElementById(`slide-${i}`);
             slide.classList.remove('active', 'prev', 'next');
-            if (i === currentSlide) {
-                slide.classList.add('active');
-            } else if (i < currentSlide) {
-                slide.classList.add('prev');
-            } else {
-                slide.classList.add('next');
-            }
+            if (i === currentSlide) slide.classList.add('active');
+            else if (i < currentSlide) slide.classList.add('prev');
+            else slide.classList.add('next');
         }
-        
-        // Update dots
         const dots = document.querySelectorAll('.carousel-nav .dot');
-        dots.forEach((dot, index) => {
-            if (index === currentSlide) {
-                dot.classList.add('active');
-            } else {
-                dot.classList.remove('active');
-            }
-        });
+        dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
     }
 
-    function nextSlide() {
-        currentSlide = (currentSlide + 1) % totalSlides;
-        updateCarousel();
-    }
-
-    function prevSlide() {
-        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-        updateCarousel();
-    }
-
-    function goToSlide(index) {
-        currentSlide = index;
-        updateCarousel();
-    }
-
+    function nextSlide() { currentSlide = (currentSlide + 1) % totalSlides; updateCarousel(); }
+    function prevSlide() { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); }
+    function goToSlide(i) { currentSlide = i; updateCarousel(); }
 
     
     
@@ -728,7 +663,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         
-        const dataStr = sessionStorage.getItem('faceData_brows');
+        const dataStr = sessionStorage.getItem('faceData_cheeks');
 
         if (!dataStr) {
             const banner = document.createElement('div');
@@ -750,18 +685,13 @@
             if(resultsDiv) resultsDiv.style.display = 'block'; 
             
             
-            document.getElementById('valHeight').innerText = `${data.height_mm} mm`;
-            document.getElementById('valElev').innerText = data.elevation;
-            document.getElementById('valApex').innerText = `${data.apex_angle}°`;
-            document.getElementById('valPos').innerText = data.position_class;
-            document.getElementById('valTilt').innerText = data.tilt_class;
-            document.getElementById('valShape').innerText = data.shape_class;
-            document.getElementById('valDimorph').innerText = data.virility_class;
-            document.getElementById('rBrowImage').src = data.r_brow_image;
-            document.getElementById('lBrowImage').src = data.l_brow_image;
-            updateSlider('heightSlider', 'heightTrack', 'heightMarker', data.height_mm, 10, 30);
-            updateSlider('elevSlider', 'elevTrack', 'elevMarker', data.elevation, 0.1, 0.4);
-            updateSlider('apexSlider', 'apexTrack', 'apexMarker', data.apex_angle, 100, 160);
+            document.getElementById('valWidthC').innerText = data.width_class;
+            document.getElementById('valPos').innerText = data.position;
+            document.getElementById('valFullness').innerText = data.fullness;
+            document.getElementById('valHeightC').innerText = data.height;
+            document.getElementById('valCurvature').innerHTML = `${data.width_val}<span> mm</span>`;
+            document.getElementById('cheeksImage').src = data.cheeks_image;
+            document.getElementById('markerCurv').style.left = `50%`;
 
         }
     });

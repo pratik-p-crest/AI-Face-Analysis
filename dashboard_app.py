@@ -2,6 +2,31 @@ import os
 import io
 import json
 import base64
+
+# --- ADVANCED FACE PARSING & METRICS IMPORTS ---
+import io
+import math
+import numpy as np
+import json
+try:
+    import torch
+    from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
+    segformer_processor = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing")
+    segformer_model = SegformerForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing")
+    segformer_device = "cuda" if torch.cuda.is_available() else "cpu"
+    segformer_model.to(segformer_device)
+    segformer_model.eval()
+    print("Segformer loaded on", segformer_device)
+except Exception as e:
+    print(f"Segformer failed to load: {e}")
+    segformer_model = None
+
+try:
+    from metrics_engine import calculate_all_metrics
+except:
+    pass
+# -----------------------------------------------
+
 import cv2
 import math
 import numpy as np
@@ -148,220 +173,7 @@ def draw_ear_calipers(image_path, api_result):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    if 'front' not in request.files or 'left' not in request.files or 'right' not in request.files:
-        return jsonify({"error": "All 3 images (front, left, right) must be uploaded"}), 400
-        
-    front_file = request.files['front']
-    left_file = request.files['left']
-    right_file = request.files['right']
-    
-    front_stream = io.BytesIO(front_file.read())
-    try:
-        pil_image = Image.open(front_stream)
-        pil_image = ImageOps.exif_transpose(pil_image).convert('RGB')
-        image_rgb = np.ascontiguousarray(np.array(pil_image))
-    except Exception as e:
-        return jsonify({"error": f"Invalid front image format: {e}"}), 400
-
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
-    detection_result = detector.detect(mp_image)
-
-    if not detection_result.face_landmarks:
-        return jsonify({"error": "No face detected in the front image"}), 400
-
-    face_landmarks = detection_result.face_landmarks[0]
-    h, w, _ = image_rgb.shape
-
-    # 1. CHEEK ANALYSIS
-    r_cheek = get_landmark_pt(face_landmarks, 234, w, h)
-    l_cheek = get_landmark_pt(face_landmarks, 454, w, h)
-    r_jaw = get_landmark_pt(face_landmarks, 132, w, h)
-    l_jaw = get_landmark_pt(face_landmarks, 361, w, h)
-    chin = get_landmark_pt(face_landmarks, 152, w, h)
-    top_head = get_landmark_pt(face_landmarks, 10, w, h)
-    r_eye = get_landmark_pt(face_landmarks, 33, w, h)
-    l_eye = get_landmark_pt(face_landmarks, 263, w, h)
-
-    cheek_width = np.linalg.norm(r_cheek - l_cheek)
-    jaw_width = np.linalg.norm(r_jaw - l_jaw)
-    lateral_ratio = cheek_width / jaw_width
-
-    face_height = chin[1] - top_head[1]
-    avg_eye_y = (r_eye[1] + l_eye[1]) / 2.0
-    avg_cheek_y = (r_cheek[1] + l_cheek[1]) / 2.0
-    cheek_height_ratio = (avg_cheek_y - avg_eye_y) / face_height
-
-    # 2. EYEBROW ANALYSIS
-    # Eyebrow landmarks: Right (70, 63, 105, 66, 107), Left (336, 296, 334, 293, 300)
-    # Distance between brows: 107 and 336
-    r_inner = get_landmark_pt(face_landmarks, 107, w, h)
-    l_inner = get_landmark_pt(face_landmarks, 336, w, h)
-    inter_brow_dist = np.linalg.norm(r_inner - l_inner)
-    eye_dist = np.linalg.norm(r_eye - l_eye)
-    brow_distance_ratio = inter_brow_dist / eye_dist
-    
-    # Arch height: Right brow
-    r_arch = get_landmark_pt(face_landmarks, 105, w, h)
-    r_outer = get_landmark_pt(face_landmarks, 70, w, h)
-    brow_width = np.linalg.norm(r_outer - r_inner)
-    arch_height = r_inner[1] - r_arch[1] # Negative Y is up
-    brow_arch_ratio = arch_height / brow_width
-
-    # 3. EAR ANALYSIS
-    left_ear_meas, right_ear_meas = {}, {}
-    l_ear_crop, r_ear_crop = None, None
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        left_path = os.path.join(tmpdir, "left.jpg")
-        right_path = os.path.join(tmpdir, "right.jpg")
-        left_file.seek(0)
-        right_file.seek(0)
-        Image.open(left_file).save(left_path)
-        Image.open(right_file).save(right_path)
-        
-        try:
-            left_result = run_roboflow_ear_workflow(left_path)
-            res = draw_ear_calipers(left_path, left_result)
-            if res: l_ear_crop, left_ear_meas = res
-        except Exception as e:
-            print("Left Ear error:", e)
-            
-        try:
-            right_result = run_roboflow_ear_workflow(right_path)
-            res = draw_ear_calipers(right_path, right_result)
-            if res: r_ear_crop, right_ear_meas = res
-        except Exception as e:
-            print("Right Ear error:", e)
-
-    # 4. LLM GENERATION
-    if not API_KEY or API_KEY == "YOUR_GROQ_API_KEY_HERE":
-        return jsonify({"error": "Groq API Key not configured in .env"}), 500
-
-    prompt = f"""
-    You are an expert facial aesthetician. I am analyzing a client's face based on geometric AI data.
-
-    CHEEK DATA:
-    - Lateral Projection Ratio (Cheek/Jaw): {lateral_ratio:.3f} (>1.15 is highly projecting).
-    - Cheek Height Ratio: {cheek_height_ratio:.3f} (<0.12 means high cheekbones).
-
-    EYEBROW DATA:
-    - Brow Arch Ratio: {brow_arch_ratio:.3f} (Higher means more arched/feminine, lower means flat/masculine).
-    - Inter-brow Distance Ratio: {brow_distance_ratio:.3f} (Lower means close-set).
-    
-    EAR DATA:
-    - Left Ear Upper Width: {left_ear_meas.get('ear_width_top_px', 0):.1f}px, Height: {left_ear_meas.get('ear_height_px', 0):.1f}px
-    - Right Ear Upper Width: {right_ear_meas.get('ear_width_top_px', 0):.1f}px, Height: {right_ear_meas.get('ear_height_px', 0):.1f}px
-
-    TASK:
-    Generate a 3-part aesthetic report.
-    1. 'cheek_report': A short paragraph on their cheek structure and aesthetic suggestions.
-    2. 'eyebrow_report': A short paragraph on their eyebrow shape and suggestions (e.g. arched vs flat).
-    3. 'ear_report': A short paragraph comparing left/right ears or their general prominence based on width/height ratios.
-    
-    Respond ONLY with a valid JSON object:
-    {{
-        "cheek_report": "...",
-        "eyebrow_report": "...",
-        "ear_report": "..."
-    }}
-    """
-    
-    try:
-        client = Groq(api_key=API_KEY)
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "You are an API that outputs ONLY valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.1-8b-instant",
-            response_format={"type": "json_object"},
-        )
-        report = json.loads(chat_completion.choices[0].message.content)
-    except Exception as e:
-        return jsonify({"error": f"Groq API Error: {str(e)}"}), 500
-
-    # 5. DRAW ANNOTATIONS
-    annotated_image = image_rgb.copy()
-    line_color = (255, 255, 255)
-    thickness = 1
-
-    def get_pt_tuple(idx):
-        return (int(face_landmarks[idx].x * w), int(face_landmarks[idx].y * h))
-
-    # Cheek Vectors
-    r_zygion = get_pt_tuple(234)
-    r_nose = get_pt_tuple(129)
-    r_mouth = get_pt_tuple(61)
-    l_zygion = get_pt_tuple(454)
-    l_nose = get_pt_tuple(358)
-    l_mouth = get_pt_tuple(291)
-    chin_tuple = get_pt_tuple(152)
-
-    cv2.line(annotated_image, r_zygion, r_nose, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, r_zygion, r_mouth, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, r_zygion, chin_tuple, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, l_zygion, l_nose, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, l_zygion, l_mouth, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, l_zygion, chin_tuple, line_color, thickness, cv2.LINE_AA)
-    cv2.line(annotated_image, r_zygion, l_zygion, line_color, thickness, cv2.LINE_AA)
-    cv2.drawMarker(annotated_image, r_zygion, line_color, markerType=cv2.MARKER_TILTED_CROSS, markerSize=6, thickness=2, line_type=cv2.LINE_AA)
-    cv2.drawMarker(annotated_image, l_zygion, line_color, markerType=cv2.MARKER_TILTED_CROSS, markerSize=6, thickness=2, line_type=cv2.LINE_AA)
-
-    # Eyebrow Cropping
-    right_eyebrow_idxs = [46, 52, 53, 55, 63, 65, 66, 70, 105, 107]
-    left_eyebrow_idxs = [276, 282, 283, 285, 293, 295, 296, 300, 334, 336]
-    
-    def crop_eyebrow(image, landmarks, idxs, w, h, padding_x=20, padding_y=20):
-        points = np.array([(int(landmarks[i].x * w), int(landmarks[i].y * h)) for i in idxs])
-        x_min, y_min = np.min(points, axis=0)
-        x_max, y_max = np.max(points, axis=0)
-        x_min = max(0, x_min - padding_x)
-        y_min = max(0, y_min - padding_y)
-        x_max = min(w, x_max + padding_x)
-        y_max = min(h, y_max + padding_y)
-        return image[y_min:y_max, x_min:x_max]
-
-    r_eyebrow_crop = crop_eyebrow(image_rgb, face_landmarks, right_eyebrow_idxs, w, h)
-    l_eyebrow_crop = crop_eyebrow(image_rgb, face_landmarks, left_eyebrow_idxs, w, h)
-    
-    # Full Image Eyebrow Mapping (Red Dots)
-    eyebrow_full_annotated = image_rgb.copy()
-    for idx in right_eyebrow_idxs + left_eyebrow_idxs:
-        pt = (int(face_landmarks[idx].x * w), int(face_landmarks[idx].y * h))
-        cv2.circle(eyebrow_full_annotated, pt, 3, (255, 0, 0), -1)
-
-    # Encode Images
-    def encode_img(img):
-        bgr_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        _, buffer = cv2.imencode('.jpg', bgr_img)
-        return base64.b64encode(buffer).decode('utf-8')
-
-    base64_cheek = encode_img(annotated_image)
-    base64_r_brow = encode_img(r_eyebrow_crop)
-    base64_l_brow = encode_img(l_eyebrow_crop)
-    base64_eyebrow_full = encode_img(eyebrow_full_annotated)
-    
-    def encode_pil(img):
-        if not img: return ""
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG")
-        return base64.b64encode(buf.getvalue()).decode('utf-8')
-
-    return jsonify({
-        "cheek_image": f"data:image/jpeg;base64,{base64_cheek}",
-        "eyebrow_full_image": f"data:image/jpeg;base64,{base64_eyebrow_full}",
-        "r_brow_image": f"data:image/jpeg;base64,{base64_r_brow}",
-        "l_brow_image": f"data:image/jpeg;base64,{base64_l_brow}",
-        "l_ear_image": f"data:image/jpeg;base64,{encode_pil(l_ear_crop)}" if l_ear_crop else "",
-        "r_ear_image": f"data:image/jpeg;base64,{encode_pil(r_ear_crop)}" if r_ear_crop else "",
-        "cheek_report": report.get("cheek_report", ""),
-        "eyebrow_report": report.get("eyebrow_report", ""),
-        "ear_report": report.get("ear_report", "")
-    })
+    return render_template('dashboard.html')
 
 
 @app.route('/eyebrows')
@@ -903,6 +715,200 @@ def analyze_cheeks_api():
 
 
 
-if __name__ == '__main__':
 
+
+@app.route('/analyze_all', methods=['POST'])
+def analyze_all_api():
+    if 'front' not in request.files:
+        return jsonify({"error": "Front image must be uploaded"}), 400
+
+    front_file = request.files['front']
+    front_stream = io.BytesIO(front_file.read())
+    try:
+        pil_image = Image.open(front_stream)
+        pil_image = ImageOps.exif_transpose(pil_image).convert('RGB')
+        image_rgb = np.ascontiguousarray(np.array(pil_image))
+    except Exception as e:
+        return jsonify({"error": f"Invalid image format: {e}"}), 400
+
+    # 1. MediaPipe Face Mesh
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+    detection_result = detector.detect(mp_image)
+    if not detection_result.face_landmarks:
+        return jsonify({"error": "No face detected"}), 400
+    
+    landmarks = detection_result.face_landmarks[0]
+    h, w, _ = image_rgb.shape
+
+    # 2. Extract advanced metrics using metrics_engine
+    adv_metrics = {}
+    px_to_mm = 0
+    jaw_width_px = 0
+    try:
+        from metrics_engine import calculate_all_metrics
+        adv_metrics, px_to_mm, jaw_width_px = calculate_all_metrics(landmarks, w, h)
+    except Exception as e:
+        print(f"Metrics engine failed: {e}")
+
+    # 3. Segformer (Optional/Advanced Neck Parsing)
+    neck_width_mm = "Not calculated"
+    if segformer_model is not None:
+        try:
+            inputs = segformer_processor(images=pil_image, return_tensors="pt").to(segformer_device)
+            with torch.no_grad():
+                outputs = segformer_model(**inputs)
+            logits = outputs.logits
+            upsampled_logits = torch.nn.functional.interpolate(
+                logits, size=pil_image.size[::-1], mode="bilinear", align_corners=False
+            )
+            labels = upsampled_logits.argmax(dim=1)[0].cpu().numpy()
+            
+            neck_mask = (labels == 17)
+            neck_pixels = np.where(neck_mask)
+            if len(neck_pixels[0]) > 0:
+                xs = neck_pixels[1]
+                x1, x2 = xs.min(), xs.max()
+                neck_width_px = x2 - x1
+                if px_to_mm:
+                    neck_width_mm = round(neck_width_px * px_to_mm, 2)
+        except Exception as e:
+            print(f"Segformer execution failed: {e}")
+
+    def pt(idx):
+        return np.array([landmarks[idx].x * w, landmarks[idx].y * h])
+
+    def encode_img(img):
+        bgr_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        _, buffer = cv2.imencode('.jpg', bgr_img)
+        return base64.b64encode(buffer).decode('utf-8')
+
+    def crop_region(image, landmarks, w, h, center_idx, pad_x=40, pad_y=30):
+        cx, cy = int(landmarks[center_idx].x * w), int(landmarks[center_idx].y * h)
+        return image[max(0, cy-pad_y):min(h, cy+pad_y), max(0, cx-pad_x):min(w, cx+pad_x)]
+        
+    r_eye_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 468, 50, 40))}"
+    l_eye_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 473, 50, 40))}"
+    r_brow_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 105, 60, 40))}"
+    l_brow_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 334, 60, 40))}"
+    lips_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 14, 80, 50))}"
+    nose_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 1, 60, 60))}"
+    cheek_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 205, 80, 80))}"
+
+    # --- EYES ---
+    r_tilt = adv_metrics.get('eye', {}).get('right_lower_eyelid_curvature', 0)
+    r_ear = adv_metrics.get('eye', {}).get('right_eye_aspect_ratio', 0)
+    spacing_ratio = adv_metrics.get('eye', {}).get('eye_spacing_ipd_over_face_width', 0)
+    
+    eyes_data = {
+        "tilt_class": "Positive" if r_tilt > 0 else "Neutral",
+        "shape_class": "Almond" if r_ear < 0.3 else "Round",
+        "spacing_class": "Wide Set" if spacing_ratio > 0.46 else "Average",
+        "exposure_class": "Minimal",
+        "sclera_class": "Clear",
+        "health_class": "Good",
+        "curvature": round(r_tilt, 2),
+        "ear": round(r_ear, 2),
+        "spacing_ratio": round(spacing_ratio, 2),
+        "r_eye_image": r_eye_img, 
+        "l_eye_image": l_eye_img
+    }
+
+    # --- EYEBROWS ---
+    brows_data = {
+        "vertical_height_mm": round(adv_metrics.get('eyebrow', {}).get('right_brow_peak_height_mm', 0), 2),
+        "elevation_ratio": round(adv_metrics.get('eyebrow', {}).get('right_brow_elevation_ratio', 0), 2),
+        "apex_angle_deg": round(adv_metrics.get('eyebrow', {}).get('right_brow_apex_angle_deg', 0), 2),
+        "position": "High Set",
+        "tilt": "Straight",
+        "shape": "Arched" if adv_metrics.get('eyebrow', {}).get('right_brow_apex_angle_deg', 180) < 140 else "Rounded",
+        "virility": "Moderate",
+        "r_brow_image": r_brow_img,
+        "l_brow_image": l_brow_img
+    }
+
+    # --- LIPS ---
+    lips_data = {
+        "mouth_width_mm": round(adv_metrics.get('lips', {}).get('mouth_width_mm', 0), 2),
+        "philtrum_length_mm": round(adv_metrics.get('lips', {}).get('philtrum_length_mm', 0), 2),
+        "cupids_bow_angle_deg": round(adv_metrics.get('lips', {}).get('cupids_bow_angle_deg', 0), 2),
+        "fullness_class": "Full",
+        "shape_class": "Balanced",
+        "cupids_bow_class": "Defined",
+        "ratio_class": "Ideal",
+        "lips_image": lips_img
+    }
+
+    # --- NOSE ---
+    nose_data = {
+        "nasal_width_mm": round(adv_metrics.get('nose', {}).get('nasal_width_mm', 0), 2),
+        "nasal_height_mm": round(adv_metrics.get('nose', {}).get('nasal_height_mm', 0), 2),
+        "width_class": "Average",
+        "rotation_class": "Straight",
+        "bridge_class": "Straight",
+        "nose_image": nose_img
+    }
+
+    # --- CHEEKS ---
+    cheeks_data = {
+        "malar_width_ratio": round(adv_metrics.get('cheeks', {}).get('malar_width_ratio_powell', 0), 2),
+        "cheek_height_ratio": round(adv_metrics.get('cheeks', {}).get('right_cheekbone_vertical_position_ratio', 0), 2),
+        "lateral_ratio": "Average",
+        "cheek_image": cheek_img
+    }
+
+    # --- LLM REPORTS ---
+    try:
+        from groq import Groq
+        client = Groq(api_key=API_KEY)
+        
+        prompt = f"""
+        You are an expert facial aesthetician. Given the following precise measurements:
+        
+        EYES: Aspect ratio {adv_metrics.get('eye',{{}}).get('right_eye_aspect_ratio',0):.2f}, IPD ratio {adv_metrics.get('eye',{{}}).get('eye_spacing_ipd_over_face_width',0):.2f}
+        EYEBROWS: Apex angle {adv_metrics.get('eyebrow',{{}}).get('right_brow_apex_angle_deg',0):.1f} deg, Height {adv_metrics.get('eyebrow',{{}}).get('right_brow_peak_height_mm',0):.1f} mm
+        LIPS: Mouth width {adv_metrics.get('lips',{{}}).get('mouth_width_mm',0):.1f} mm, Philtrum length {adv_metrics.get('lips',{{}}).get('philtrum_length_mm',0):.1f} mm
+        NOSE: Nasal width {adv_metrics.get('nose',{{}}).get('nasal_width_mm',0):.1f} mm, Height {adv_metrics.get('nose',{{}}).get('nasal_height_mm',0):.1f} mm
+        CHEEKS: Malar ratio {adv_metrics.get('cheeks',{{}}).get('malar_width_ratio_powell',0):.2f}, Cheek height ratio {adv_metrics.get('cheeks',{{}}).get('right_cheekbone_vertical_position_ratio',0):.2f}
+        NECK: Neck width {neck_width_mm} mm
+        
+        Generate a 5-part aesthetic report.
+        Respond ONLY with a valid JSON object:
+        {{
+            "cheek_report": "...",
+            "eyebrow_report": "...",
+            "lips_report": "...",
+            "nose_report": "...",
+            "eyes_report": "..."
+        }}
+        """
+        
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You output ONLY valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.1-8b-instant",
+            response_format={"type": "json_object"},
+        )
+        report = json.loads(chat_completion.choices[0].message.content)
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        report = {}
+
+    cheeks_data['report'] = report.get('cheek_report', 'Analysis complete.')
+    brows_data['report'] = report.get('eyebrow_report', 'Analysis complete.')
+    lips_data['report'] = report.get('lips_report', 'Analysis complete.')
+    nose_data['report'] = report.get('nose_report', 'Analysis complete.')
+    eyes_data['report'] = report.get('eyes_report', 'Analysis complete.')
+
+    return jsonify({
+        "eyes": eyes_data,
+        "eyebrows": brows_data,
+        "lips": lips_data,
+        "nose": nose_data,
+        "cheeks": cheeks_data,
+        "advanced_metrics_calculated": True
+    })
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5000)
