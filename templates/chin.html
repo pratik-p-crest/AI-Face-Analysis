@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% set active_page = "chin" %}
+
+{% block content %}
+<div class="header">
+    <h1>Summary of your <span>chin</span></h1>
+    <p>Detailed facial analysis of your chin based on advanced 3D mesh modeling.</p>
+</div>
+
+<div id="results">
+    <!-- Top Image Card -->
+    <div class="image-card" id="imagesContainer" style="display: flex; justify-content: center; align-items: center; gap: 40px; padding: 40px; min-height: 200px;">
+        <!-- Images injected here dynamically -->
+    </div>
+
+    <!-- Bottom Split -->
+    <div class="bottom-split">
+        <!-- Left Side: Grid for Classes/Categories -->
+        <div>
+            <div class="grid-header">Feature Classifications</div>
+            <div class="metric-grid" id="classGrid">
+                <!-- Class cards injected here dynamically -->
+            </div>
+            
+            <div id="reportCard" style="display:none; margin-top: 24px; padding: 24px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                <div style="font-family: monospace; font-size: 10px; color: var(--text-highlight); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 600;">AI ANALYSIS REPORT</div>
+                <div id="reportText"></div>
+            </div>
+        </div>
+
+        <!-- Right Side: Numerical/Ratios list -->
+        <div>
+            <div class="carousel-container" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;" id="numList">
+                <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 500;">Exact Measurements</h3>
+                <!-- Number cards injected here dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-row {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.metric-row .metric-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.metric-row .metric-val {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const sessionKey = 'faceData_chin';
+        const dataStr = sessionStorage.getItem(sessionKey);
+
+        if (!dataStr) {
+            const banner = document.createElement('div');
+            banner.innerHTML = '<div style="background:var(--text-highlight); color:white; padding:15px; text-align:center; border-radius:8px; margin-bottom:20px; font-weight:bold;">No Data Found! Please upload an image on the Dashboard.</div>';
+            document.querySelector('.header').after(banner);
+            return;
+        }
+
+        const data = JSON.parse(dataStr);
+        if(data.error) { alert(data.error); return; }
+        
+        document.getElementById('results').style.display = 'block';
+
+        const imagesContainer = document.getElementById('imagesContainer');
+        const classGrid = document.getElementById('classGrid');
+        const numList = document.getElementById('numList');
+
+        for (const [key, value] of Object.entries(data)) {
+            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            if (key === 'report') {
+                document.getElementById('reportCard').style.display = 'block';
+                document.getElementById('reportText').innerText = value;
+                continue;
+            }
+            if (key === 'advanced_metrics_calculated') continue;
+
+            if (key.includes('image')) {
+                const img = document.createElement('img');
+                img.src = value;
+                img.style.maxWidth = '250px';
+                img.style.maxHeight = '150px';
+                img.style.objectFit = 'contain';
+                img.style.borderRadius = '12px';
+                img.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                img.style.border = '2px solid #f1f5f9';
+                imagesContainer.appendChild(img);
+            } 
+            else if (typeof value === 'string' && value !== '') {
+                const card = document.createElement('div');
+                card.className = 'class-card';
+                card.innerHTML = `
+                    <div class="class-label">${displayKey.toUpperCase()}</div>
+                    <div class="class-value">${value}</div>
+                `;
+                classGrid.appendChild(card);
+            } 
+            else if (typeof value === 'number') {
+                let formattedVal = Number.isInteger(value) ? value : value.toFixed(2);
+                
+                // Sometimes backend fails and sends 0, let's at least show it.
+                // We will append it normally.
+
+                const row = document.createElement('div');
+                row.className = 'metric-row';
+                
+                let unit = '';
+                if(key.includes('mm')) unit = 'mm';
+                else if(key.includes('angle') || key.includes('deg')) unit = '°';
+                else if(key.includes('ratio')) unit = 'ratio';
+
+                row.innerHTML = `
+                    <div class="metric-name">${displayKey}</div>
+                    <div class="metric-val">${formattedVal} <span style="font-size:12px; font-weight:400;">${unit}</span></div>
+                `;
+                numList.appendChild(row);
+            }
+        }
+        
+        if(imagesContainer.children.length === 0) {
+            imagesContainer.style.display = 'none';
+        }
+        if(classGrid.children.length === 0) {
+            classGrid.innerHTML = '<div style="color:#64748b; padding: 20px;">No classifications available.</div>';
+        }
+    });
+</script>
+{% endblock %}

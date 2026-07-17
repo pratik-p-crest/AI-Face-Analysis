@@ -11,8 +11,14 @@ import json
 try:
     import torch
     from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
-    segformer_processor = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing")
-    segformer_model = SegformerForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing")
+    try:
+        print("Attempting to load Segformer locally to bypass network...")
+        segformer_processor = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing", local_files_only=True)
+        segformer_model = SegformerForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing", local_files_only=True)
+    except Exception:
+        print("Local cache not found, downloading from HuggingFace...")
+        segformer_processor = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing")
+        segformer_model = SegformerForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing")
     segformer_device = "cuda" if torch.cuda.is_available() else "cpu"
     segformer_model.to(segformer_device)
     segformer_model.eval()
@@ -659,6 +665,35 @@ def analyze_nose_api():
 def cheeks():
     return render_template('cheeks.html')
 
+@app.route('/jaw')
+def jaw():
+    return render_template('jaw.html')
+
+@app.route('/chin')
+def chin():
+    return render_template('chin.html')
+
+@app.route('/hair')
+def hair():
+    return render_template('hair.html')
+
+@app.route('/smile')
+def smile():
+    return render_template('smile.html')
+
+@app.route('/neck')
+def neck():
+    return render_template('neck.html')
+
+@app.route('/ear')
+def ear():
+    return render_template('ear.html')
+
+@app.route('/skin')
+def skin():
+    return render_template('skin.html')
+
+
 @app.route('/analyze_cheeks', methods=['POST'])
 def analyze_cheeks_api():
     if 'front' not in request.files:
@@ -795,20 +830,13 @@ def analyze_all_api():
     cheek_img = f"data:image/jpeg;base64,{encode_img(crop_region(image_rgb, landmarks, w, h, 205, 80, 80))}"
 
     # --- EYES ---
-    r_tilt = adv_metrics.get('eye', {}).get('right_lower_eyelid_curvature', 0)
-    r_ear = adv_metrics.get('eye', {}).get('right_eye_aspect_ratio', 0)
-    spacing_ratio = adv_metrics.get('eye', {}).get('eye_spacing_ipd_over_face_width', 0)
-    
     eyes_data = {
-        "tilt_class": "Positive" if r_tilt > 0 else "Neutral",
-        "shape_class": "Almond" if r_ear < 0.3 else "Round",
-        "spacing_class": "Wide Set" if spacing_ratio > 0.46 else "Average",
-        "exposure_class": "Minimal",
-        "sclera_class": "Clear",
-        "health_class": "Good",
-        "curvature": round(r_tilt, 2),
-        "ear": round(r_ear, 2),
-        "spacing_ratio": round(spacing_ratio, 2),
+        "tilt_class": "Positive" if adv_metrics.get('eye', {}).get('right_lower_eyelid_curvature', 0) > 0 else "Neutral",
+        "shape_class": "Almond" if adv_metrics.get('eye', {}).get('right_eye_aspect_ratio', 0) < 0.3 else "Round",
+        "spacing_class": "Wide Set" if adv_metrics.get('eye', {}).get('eye_spacing_ipd_over_face_width', 0) > 0.46 else "Average",
+        "curvature": round(adv_metrics.get('eye', {}).get('right_lower_eyelid_curvature', 0), 2),
+        "ear": round(adv_metrics.get('eye', {}).get('right_eye_aspect_ratio', 0), 2),
+        "spacing_ratio": round(adv_metrics.get('eye', {}).get('eye_spacing_ipd_over_face_width', 0), 2),
         "r_eye_image": r_eye_img, 
         "l_eye_image": l_eye_img
     }
@@ -821,7 +849,6 @@ def analyze_all_api():
         "position": "High Set",
         "tilt": "Straight",
         "shape": "Arched" if adv_metrics.get('eyebrow', {}).get('right_brow_apex_angle_deg', 180) < 140 else "Rounded",
-        "virility": "Moderate",
         "r_brow_image": r_brow_img,
         "l_brow_image": l_brow_img
     }
@@ -831,10 +858,6 @@ def analyze_all_api():
         "mouth_width_mm": round(adv_metrics.get('lips', {}).get('mouth_width_mm', 0), 2),
         "philtrum_length_mm": round(adv_metrics.get('lips', {}).get('philtrum_length_mm', 0), 2),
         "cupids_bow_angle_deg": round(adv_metrics.get('lips', {}).get('cupids_bow_angle_deg', 0), 2),
-        "fullness_class": "Full",
-        "shape_class": "Balanced",
-        "cupids_bow_class": "Defined",
-        "ratio_class": "Ideal",
         "lips_image": lips_img
     }
 
@@ -842,9 +865,6 @@ def analyze_all_api():
     nose_data = {
         "nasal_width_mm": round(adv_metrics.get('nose', {}).get('nasal_width_mm', 0), 2),
         "nasal_height_mm": round(adv_metrics.get('nose', {}).get('nasal_height_mm', 0), 2),
-        "width_class": "Average",
-        "rotation_class": "Straight",
-        "bridge_class": "Straight",
         "nose_image": nose_img
     }
 
@@ -852,9 +872,45 @@ def analyze_all_api():
     cheeks_data = {
         "malar_width_ratio": round(adv_metrics.get('cheeks', {}).get('malar_width_ratio_powell', 0), 2),
         "cheek_height_ratio": round(adv_metrics.get('cheeks', {}).get('right_cheekbone_vertical_position_ratio', 0), 2),
-        "lateral_ratio": "Average",
         "cheek_image": cheek_img
     }
+
+    # --- JAW ---
+    jaw_data = {
+        "frontal_jaw_rise_mm": round(adv_metrics.get('jaw', {}).get('frontal_jaw_rise_mm', 0), 2),
+        "jaw_width_mm": round(adv_metrics.get('jaw', {}).get('jaw_width_mm', 0), 2),
+        "right_jaw_inclination_angle_deg": round(adv_metrics.get('jaw', {}).get('right_jaw_inclination_angle_deg', 0), 2)
+    }
+
+    # --- CHIN ---
+    chin_data = {
+        "chin_width_mm": round(adv_metrics.get('chin', {}).get('chin_width_mm', 0), 2),
+        "chin_vertical_height_mm": round(adv_metrics.get('chin', {}).get('chin_vertical_height_mm', 0), 2),
+        "chin_midline_deviation_mm": round(adv_metrics.get('chin', {}).get('chin_midline_deviation_mm', 0), 2)
+    }
+
+    # --- HAIR ---
+    hair_data = {
+        "forehead_width_mm": round(adv_metrics.get('hair', {}).get('forehead_width_mm', 0), 2),
+        "forehead_height_mm_mesh_approx": round(adv_metrics.get('hair', {}).get('forehead_height_mm_mesh_approx', 0), 2),
+        "right_temple_inclination_angle_deg": round(adv_metrics.get('hair', {}).get('right_temple_inclination_angle_deg', 0), 2)
+    }
+
+    # --- SMILE ---
+    smile_data = {
+        "upper_smile_arc_curvature": round(adv_metrics.get('smile', {}).get('upper_smile_arc_curvature', 0), 2),
+        "smile_width_mm": round(adv_metrics.get('smile', {}).get('smile_width_mm', 0), 2)
+    }
+
+    # --- NECK ---
+    neck_data = {
+        "neck_width_mm": neck_width_mm if isinstance(neck_width_mm, (int, float)) else 0.0,
+        "neck_width_to_jaw_width_ratio": round(neck_width_mm / (jaw_width_px * px_to_mm + 1e-9), 2) if isinstance(neck_width_mm, (int, float)) and px_to_mm else 0.0
+    }
+
+    # --- EAR & SKIN ---
+    ear_data = {}
+    skin_data = {}
 
     # --- LLM REPORTS ---
     try:
@@ -862,24 +918,20 @@ def analyze_all_api():
         client = Groq(api_key=API_KEY)
         
         prompt = f"""
-        You are an expert facial aesthetician. Given the following precise measurements:
+        Analyze these facial features and give 1-2 sentence aesthetic reports.
+        EYES: Aspect ratio {adv_metrics.get('eye',{{}}).get('right_eye_aspect_ratio',0):.2f}
+        EYEBROWS: Height {adv_metrics.get('eyebrow',{{}}).get('right_brow_peak_height_mm',0):.1f} mm
+        LIPS: Width {adv_metrics.get('lips',{{}}).get('mouth_width_mm',0):.1f} mm
+        NOSE: Width {adv_metrics.get('nose',{{}}).get('nasal_width_mm',0):.1f} mm
+        CHEEKS: Malar ratio {adv_metrics.get('cheeks',{{}}).get('malar_width_ratio_powell',0):.2f}
+        JAW: Width {adv_metrics.get('jaw',{{}}).get('jaw_width_mm',0):.1f} mm
+        CHIN: Height {adv_metrics.get('chin',{{}}).get('chin_vertical_height_mm',0):.1f} mm
+        HAIR: Forehead {adv_metrics.get('hair',{{}}).get('forehead_height_mm_mesh_approx',0):.1f} mm
+        SMILE: Width {adv_metrics.get('smile',{{}}).get('smile_width_mm',0):.1f} mm
+        NECK: Width {neck_width_mm} mm
         
-        EYES: Aspect ratio {adv_metrics.get('eye',{{}}).get('right_eye_aspect_ratio',0):.2f}, IPD ratio {adv_metrics.get('eye',{{}}).get('eye_spacing_ipd_over_face_width',0):.2f}
-        EYEBROWS: Apex angle {adv_metrics.get('eyebrow',{{}}).get('right_brow_apex_angle_deg',0):.1f} deg, Height {adv_metrics.get('eyebrow',{{}}).get('right_brow_peak_height_mm',0):.1f} mm
-        LIPS: Mouth width {adv_metrics.get('lips',{{}}).get('mouth_width_mm',0):.1f} mm, Philtrum length {adv_metrics.get('lips',{{}}).get('philtrum_length_mm',0):.1f} mm
-        NOSE: Nasal width {adv_metrics.get('nose',{{}}).get('nasal_width_mm',0):.1f} mm, Height {adv_metrics.get('nose',{{}}).get('nasal_height_mm',0):.1f} mm
-        CHEEKS: Malar ratio {adv_metrics.get('cheeks',{{}}).get('malar_width_ratio_powell',0):.2f}, Cheek height ratio {adv_metrics.get('cheeks',{{}}).get('right_cheekbone_vertical_position_ratio',0):.2f}
-        NECK: Neck width {neck_width_mm} mm
-        
-        Generate a 5-part aesthetic report.
-        Respond ONLY with a valid JSON object:
-        {{
-            "cheek_report": "...",
-            "eyebrow_report": "...",
-            "lips_report": "...",
-            "nose_report": "...",
-            "eyes_report": "..."
-        }}
+        Respond ONLY with a valid JSON object using exactly these keys:
+        {{"cheek_report": "...", "eyebrow_report": "...", "lips_report": "...", "nose_report": "...", "eyes_report": "...", "jaw_report": "...", "chin_report": "...", "hair_report": "...", "smile_report": "...", "neck_report": "..."}}
         """
         
         chat_completion = client.chat.completions.create(
@@ -900,6 +952,11 @@ def analyze_all_api():
     lips_data['report'] = report.get('lips_report', 'Analysis complete.')
     nose_data['report'] = report.get('nose_report', 'Analysis complete.')
     eyes_data['report'] = report.get('eyes_report', 'Analysis complete.')
+    jaw_data['report'] = report.get('jaw_report', 'Analysis complete.')
+    chin_data['report'] = report.get('chin_report', 'Analysis complete.')
+    hair_data['report'] = report.get('hair_report', 'Analysis complete.')
+    smile_data['report'] = report.get('smile_report', 'Analysis complete.')
+    neck_data['report'] = report.get('neck_report', 'Analysis complete.')
 
     return jsonify({
         "eyes": eyes_data,
@@ -907,6 +964,13 @@ def analyze_all_api():
         "lips": lips_data,
         "nose": nose_data,
         "cheeks": cheeks_data,
+        "jaw": jaw_data,
+        "chin": chin_data,
+        "hair": hair_data,
+        "smile": smile_data,
+        "neck": neck_data,
+        "ear": ear_data,
+        "skin": skin_data,
         "advanced_metrics_calculated": True
     })
 

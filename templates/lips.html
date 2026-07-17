@@ -1,701 +1,148 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eye Aesthetic Analysis</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #f8fafc;
-            --sidebar-bg: #ffffff;
-            --card-bg: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-highlight: #94a3b8;
-            --border-color: #f1f5f9;
-            --bar-bg: #e2e8f0;
-            --bar-fill: #94a3b8;
-            --marker-color: #1e293b;
-            --tooltip-bg: #64748b;
-        }
+{% extends "base.html" %}
+{% set active_page = "lips" %}
 
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .sidebar {
-            width: 250px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
-            padding: 32px 0;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .sidebar-menu li {
-            padding: 12px 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-
-        .sidebar-menu li:hover { color: var(--text-primary); }
-
-        .sidebar-menu li.has-children {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .sidebar-menu li.has-children::before {
-            content: "v";
-            margin-right: 12px;
-            font-size: 10px;
-            font-family: monospace;
-        }
-
-        .sidebar-menu li.collapsed::before { content: ">"; }
-
-        .sidebar-submenu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-submenu li {
-            padding: 10px 24px 10px 48px;
-            margin: 4px 12px;
-            border-radius: 8px;
-            color: var(--text-secondary);
-        }
-
-        .sidebar-submenu li:hover {
-            background: #f8fafc;
-            color: var(--text-primary);
-        }
-
-        .sidebar-submenu li.active {
-            background: #ffffff;
-            color: var(--text-primary);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            font-weight: 500;
-        }
-
-        .main-content {
-            flex-grow: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-            letter-spacing: -0.5px;
-        }
-
-        .header h1 span { color: var(--text-highlight); }
-
-        .header p {
-            font-size: 15px;
-            color: var(--text-secondary);
-            margin: 0 0 32px 0;
-        }
-
-        .header p strong {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .upload-row { margin-bottom: 20px; }
-
-        .upload-btn {
-            background-color: var(--text-primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .image-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 40px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 60px;
-            min-height: 180px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        }
-
-        .image-card img {
-            max-width: 200px;
-            height: auto;
-            border-radius: 50%;
-        }
-
-        .bottom-split {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .grid-header {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 16px;
-        }
-
-        .metric-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .class-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px 20px;
-            position: relative;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            transition: all 0.2s;
-            cursor: default;
-        }
-
-        .class-card:hover { border-color: #cbd5e1; }
-
-        .class-label {
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text-highlight);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 40px;
-            font-weight: 600;
-        }
-
-        .class-value {
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .class-card .tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(-10px);
-            background: var(--tooltip-bg);
-            color: white;
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.4;
-            width: 200px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s;
-            z-index: 10;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-
-        .class-card .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 6px;
-            border-style: solid;
-            border-color: var(--tooltip-bg) transparent transparent transparent;
-        }
-
-        .class-card .tooltip .tooltip-title {
-            font-family: monospace;
-            font-size: 10px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #f8fafc;
-        }
-
-        .class-card:hover .tooltip {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(-5px);
-        }
-
-        .carousel-container {
-            position: relative;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            overflow: hidden;
-            min-height: 350px;
-        }
-
-        .carousel-nav {
-            position: absolute;
-            top: 24px;
-            right: 24px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            color: #cbd5e1;
-            font-size: 14px;
-            z-index: 20;
-            user-select: none;
-        }
-
-        .carousel-nav .arrow {
-            cursor: pointer;
-            padding: 0 4px;
-            transition: color 0.2s;
-        }
-
-        .carousel-nav .arrow:hover { color: var(--text-primary); }
-
-        .carousel-nav .dot {
-            width: 6px;
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .carousel-nav .dot.active { background: #94a3b8; }
-
-        .range-card {
-            padding: 24px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-            transition: transform 0.4s ease, opacity 0.4s ease;
-            opacity: 0;
-            pointer-events: none;
-            background: var(--card-bg);
-        }
-
-        .range-card.active {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateX(0);
-        }
-
-        .range-card.prev { transform: translateX(-100%); }
-        .range-card.next { transform: translateX(100%); }
-
-        .range-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-            font-weight: 500;
-        }
-
-        .range-card h3 .highlight { color: var(--text-highlight); }
-
-        .range-card p.desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin: 0 0 32px 0;
-            line-height: 1.5;
-            max-width: 85%;
-        }
-
-        .range-box {
-            background: #fafafa;
-            border-radius: 8px;
-            padding: 24px;
-            border: 1px solid #f1f5f9;
-        }
-
-        .range-box-header {
-            display: flex;
-            justify-content: space-between;
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text-highlight);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .range-value {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 40px;
-        }
-
-        .range-value span {
-            font-size: 14px;
-            font-weight: 500;
-            margin-left: 2px;
-            color: var(--text-primary);
-        }
-
-        .slider-container {
-            position: relative;
-            height: 40px;
-        }
-
-        .slider-track {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--bar-bg);
-            border-radius: 2px;
-        }
-
-        .slider-fill {
-            position: absolute;
-            bottom: 20px;
-            height: 4px;
-            background: var(--bar-fill);
-            border-radius: 2px;
-        }
-
-        .slider-marker {
-            position: absolute;
-            bottom: 24px;
-            width: 4px;
-            height: 4px;
-            background: var(--marker-color);
-            transform: translateX(-50%);
-            transition: left 0.5s ease-out;
-        }
-
-        .slider-marker::after {
-            content: '';
-            position: absolute;
-            top: 4px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 1px;
-            height: 12px;
-            background: var(--bar-fill);
-        }
-
-        .slider-labels {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .slider-labels span {
-            font-size: 10px;
-            font-weight: 500;
-        }
-
-        #results { display: block; }
-    </style>
-</head>
-<body>
-
-<div class="sidebar">
-    <ul class="sidebar-menu">
-        <li class="collapsed">Introduction</li>
-        <li class="collapsed">Facial Assessments</li>
-        <li class="has-children">Features Analysis</li>
-        <ul class="sidebar-submenu">
-            <li onclick="window.location.href='/'">Dashboard</li>
-            
-            <li onclick="window.location.href='/eyebrows'">Eyebrows</li>
-            <li class="active" onclick="window.location.href='/eyes'">Eyes</li>
-            <li onclick="window.location.href='/nose'">Nose</li>
-            <li onclick="window.location.href='/lips'">Lips</li>
-            <li onclick="window.location.href='/cheeks'">Cheeks</li>
-            <li>Jaw</li>
-            <li>Chin</li>
-            <li>Hair</li>
-            <li>Smile</li>
-            <li>Neck</li>
-            <li>Ear</li>
-            <li>Skin</li>
-        </ul>
-        <li class="collapsed">Protocol</li>
-    </ul>
+{% block content %}
+<div class="header">
+    <h1>Summary of your <span>lips</span></h1>
+    <p>Detailed facial analysis of your lips based on advanced 3D mesh modeling.</p>
 </div>
 
-<div class="main-content">
-
-    <div class="header">
-        <h1>An overview of your <span>lips</span></h1>
-        <p>Lip size, shape, and color play a key role in facial attractiveness by signaling health, youth, and dimorphism. to your soul, and their characteristics play a crucial role in <strong>facial expression</strong> and aesthetics.</p>
+<div id="results">
+    <!-- Top Image Card -->
+    <div class="image-card" id="imagesContainer" style="display: flex; justify-content: center; align-items: center; gap: 40px; padding: 40px; min-height: 200px;">
+        <!-- Images injected here dynamically -->
     </div>
 
-    
-
-    <div id="results">
-
-        <div class="image-card">
-            <img id="lipImage" src="" alt="Right Eye">
+    <!-- Bottom Split -->
+    <div class="bottom-split">
+        <!-- Left Side: Grid for Classes/Categories -->
+        <div>
+            <div class="grid-header">Feature Classifications</div>
+            <div class="metric-grid" id="classGrid">
+                <!-- Class cards injected here dynamically -->
+            </div>
             
+            <div id="reportCard" style="display:none; margin-top: 24px; padding: 24px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                <div style="font-family: monospace; font-size: 10px; color: var(--text-highlight); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 600;">AI ANALYSIS REPORT</div>
+                <div id="reportText"></div>
+            </div>
         </div>
 
-        <div class="bottom-split">
-
-            <!-- Left: 2x2 Grid -->
-            <div>
-                <div class="grid-header">Summary of your lips</div>
-                <div class="metric-grid">
-
-                    <div class="class-card">
-                        <div class="tooltip">
-                            <div class="tooltip-title">LIP FULLNESS</div>
-                            The canthal tilt angle of your palpebral fissure — whether your outer eye corners sit higher or lower than the inner corners.
-                        </div>
-                        <div class="class-label">LIP FULLNESS</div>
-                        <div class="class-value" id="valFullness">--</div>
-                    </div>
-
-                    <div class="class-card">
-                        <div class="tooltip">
-                            <div class="tooltip-title">LIP WIDTH</div>
-                            How much of your upper eyelid skin is visible between the crease and lash line.
-                        </div>
-                        <div class="class-label">LIP WIDTH</div>
-                        <div class="class-value" id="valWidth">--</div>
-                    </div>
-
-                    <div class="class-card">
-                        <div class="tooltip">
-                            <div class="tooltip-title">LIP PROPORTIONS</div>
-                            The colour and clarity of the visible white area of your eyes.
-                        </div>
-                        <div class="class-label">LIP PROPORTIONS</div>
-                        <div class="class-value" id="valProp">--</div>
-                    </div>
-
-                    <div class="class-card">
-                        <div class="tooltip">
-                            <div class="tooltip-title">LIP HEALTH</div>
-                            The darkness or discolouration below the lower eyelid compared to the surrounding cheek skin.
-                        </div>
-                        <div class="class-label">LIP HEALTH</div>
-                        <div class="class-value" id="valHealthLip">--</div>
-                    </div>
-
-                </div>
+        <!-- Right Side: Numerical/Ratios list -->
+        <div>
+            <div class="carousel-container" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;" id="numList">
+                <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 500;">Exact Measurements</h3>
+                <!-- Number cards injected here dynamically -->
             </div>
-
-            <!-- Right: Carousel -->
-            <div>
-                <div class="carousel-container">
-                    <div class="carousel-nav">
-                        <div class="arrow" onclick="prevSlide()">&lt;</div>
-                        <div class="dot active" onclick="goToSlide(0)"></div>
-                        <div class="dot" onclick="goToSlide(1)"></div>
-                        <div class="dot" onclick="goToSlide(2)"></div>
-                        <div class="arrow" onclick="nextSlide()">&gt;</div>
-                    </div>
-
-                    <!-- Slide 1: Lower Eyelid Curvature -->
-                    <div class="range-card active" id="slide-0">
-                        <h3 id="curvTitle">Slightly <span class="highlight">lower</span> curvature than the common range</h3>
-                        <p class="desc">Your lower eyelids appear a bit <strong>straighter</strong>, giving the eyes a <strong>firmer</strong> and less rounded lower contour while still looking natural.</p>
-
-                        <div class="range-box">
-                            <div class="range-box-header">
-                                <div>LOWER EYELID CURVATURE</div>
-                                <div>30-39 - WHITE - MALE</div>
-                            </div>
-                            <div class="range-value" id="valCurvature">--<span>Total Bending (k)</span></div>
-                            <div class="slider-container">
-                                <div class="slider-track"></div>
-                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
-                                <div class="slider-marker" id="markerCurv" style="left: 50%;"></div>
-                                <div class="slider-labels" style="padding: 0 10%;">
-                                    <div>1.0<span> Total Bending (k)</span></div>
-                                    <div>2.5<span> Total Bending (k)</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Slide 2: Eye Aspect Ratio -->
-                    <div class="range-card next" id="slide-1">
-                        <h3>Slightly <span class="highlight">higher</span> than typical almond-like shapes</h3>
-                        <p class="desc">You show <strong>mildly increased almondness</strong>, giving the eyes a <strong>subtly more open</strong> and defined vertical profile without appearing exaggerated.</p>
-
-                        <div class="range-box">
-                            <div class="range-box-header">
-                                <div>EYE ASPECT RATIO (ALMONDNESS RATIO)</div>
-                                <div>30-39 - WHITE - MALE</div>
-                            </div>
-                            <div class="range-value" id="valEAR">--</div>
-                            <div class="slider-container">
-                                <div class="slider-track"></div>
-                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
-                                <div class="slider-marker" id="markerEAR" style="left: 50%;"></div>
-                                <div class="slider-labels" style="padding: 0 10%;">
-                                    <div>0.25</div>
-                                    <div>0.45</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Slide 3: Eye Spacing Ratio -->
-                    <div class="range-card next" id="slide-2">
-                        <h3>Noticeably <span class="highlight">higher</span> than the usual spacing range</h3>
-                        <p class="desc">You have <strong>relatively wider spacing</strong> between the eyes, which makes the central face appear <strong>more expansive</strong> and shifts visual focus slightly outward.</p>
-
-                        <div class="range-box">
-                            <div class="range-box-header">
-                                <div>EYE SPACING RATIO (INTERPUPILLARY / FACIAL WIDTH)</div>
-                                <div>30-39 - WHITE - MALE</div>
-                            </div>
-                            <div class="range-value" id="valSpacing">--</div>
-                            <div class="slider-container">
-                                <div class="slider-track"></div>
-                                <div class="slider-fill" style="left: 15%; right: 15%;"></div>
-                                <div class="slider-marker" id="markerSpacing" style="left: 50%;"></div>
-                                <div class="slider-labels" style="padding: 0 10%;">
-                                    <div>0.40</div>
-                                    <div>0.50</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
 
+<style>
+.metric-row {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.metric-row .metric-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.metric-row .metric-val {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
 <script>
-    let currentSlide = 0;
-    const totalSlides = 3;
-
-    function updateCarousel() {
-        for (let i = 0; i < totalSlides; i++) {
-            const slide = document.getElementById(`slide-${i}`);
-            slide.classList.remove('active', 'prev', 'next');
-            if (i === currentSlide) slide.classList.add('active');
-            else if (i < currentSlide) slide.classList.add('prev');
-            else slide.classList.add('next');
-        }
-        const dots = document.querySelectorAll('.carousel-nav .dot');
-        dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
-    }
-
-    function nextSlide() { currentSlide = (currentSlide + 1) % totalSlides; updateCarousel(); }
-    function prevSlide() { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); }
-    function goToSlide(i) { currentSlide = i; updateCarousel(); }
-
-    
-    
-    
-    // Global Upload Logic
-    const gInput = document.getElementById('fileInput');
-    if(gInput) {
-        gInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('front', file);
-
-            const loadEl = document.getElementById('loading');
-            if(loadEl) loadEl.style.display = 'inline-block';
-            
-            const resEl = document.getElementById('results');
-            if (resEl) resEl.style.display = 'none';
-
-            try {
-                const [eyesRes, browsRes, lipsRes, noseRes, cheeksRes] = await Promise.all([
-                    fetch('/analyze_eyes', { method: 'POST', body: formData }).then(r => r.json()),
-                    fetch('/analyze_eyebrows', { method: 'POST', body: formData }).then(r => r.json()),
-                    fetch('/analyze_lips', { method: 'POST', body: formData }).then(r => r.json()),
-                    fetch('/analyze_nose', { method: 'POST', body: formData }).then(r => r.json()),
-                    fetch('/analyze_cheeks', { method: 'POST', body: formData }).then(r => r.json())
-                ]);
-
-                sessionStorage.setItem('faceData_eyes', JSON.stringify(eyesRes));
-                sessionStorage.setItem('faceData_brows', JSON.stringify(browsRes));
-                sessionStorage.setItem('faceData_lips', JSON.stringify(lipsRes));
-                sessionStorage.setItem('faceData_nose', JSON.stringify(noseRes));
-                sessionStorage.setItem('faceData_cheeks', JSON.stringify(cheeksRes));
-
-                window.location.reload();
-
-            } catch (err) {
-                alert('Error analyzing face: ' + err);
-            } finally {
-                if(loadEl) loadEl.style.display = 'none';
-            }
-        });
-    }
-
     window.addEventListener('DOMContentLoaded', () => {
-        
-        const dataStr = sessionStorage.getItem('faceData_lips');
+        const sessionKey = 'faceData_lips';
+        const dataStr = sessionStorage.getItem(sessionKey);
 
         if (!dataStr) {
             const banner = document.createElement('div');
-            banner.innerHTML = '<div style="background:var(--text-highlight); color:white; padding:15px; text-align:center; border-radius:8px; margin-bottom:20px; font-weight:bold;">No Face Data Found! Please click Dashboard on the left to upload your image first.</div>';
+            banner.innerHTML = '<div style="background:var(--text-highlight); color:white; padding:15px; text-align:center; border-radius:8px; margin-bottom:20px; font-weight:bold;">No Data Found! Please upload an image on the Dashboard.</div>';
             document.querySelector('.header').after(banner);
             return;
         }
-        
-        
-        
-        if (dataStr) {
-            const data = JSON.parse(dataStr);
-            if(data.error) { alert(data.error); return; }
-            
-            const uploadCont = document.querySelector('.upload-container');
-            if(uploadCont) uploadCont.style.display = 'none';
-            
-            const resultsDiv = document.getElementById('results');
-            if(resultsDiv) resultsDiv.style.display = 'block'; 
-            
-            
-            document.getElementById('valFullness').innerText = data.fullness;
-            document.getElementById('valWidth').innerText = data.width;
-            document.getElementById('valProp').innerText = data.proportions;
-            document.getElementById('valHealthLip').innerText = data.health;
-            document.getElementById('valCurvature').innerHTML = `${data.mouth_width}<span> mm</span>`;
-            document.getElementById('lipImage').src = data.lip_image;
-            document.getElementById('markerCurv').style.left = `50%`;
 
+        const data = JSON.parse(dataStr);
+        if(data.error) { alert(data.error); return; }
+        
+        document.getElementById('results').style.display = 'block';
+
+        const imagesContainer = document.getElementById('imagesContainer');
+        const classGrid = document.getElementById('classGrid');
+        const numList = document.getElementById('numList');
+
+        for (const [key, value] of Object.entries(data)) {
+            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            if (key === 'report') {
+                document.getElementById('reportCard').style.display = 'block';
+                document.getElementById('reportText').innerText = value;
+                continue;
+            }
+            if (key === 'advanced_metrics_calculated') continue;
+
+            if (key.includes('image')) {
+                const img = document.createElement('img');
+                img.src = value;
+                img.style.maxWidth = '250px';
+                img.style.maxHeight = '150px';
+                img.style.objectFit = 'contain';
+                img.style.borderRadius = '12px';
+                img.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                img.style.border = '2px solid #f1f5f9';
+                imagesContainer.appendChild(img);
+            } 
+            else if (typeof value === 'string' && value !== '') {
+                const card = document.createElement('div');
+                card.className = 'class-card';
+                card.innerHTML = `
+                    <div class="class-label">${displayKey.toUpperCase()}</div>
+                    <div class="class-value">${value}</div>
+                `;
+                classGrid.appendChild(card);
+            } 
+            else if (typeof value === 'number') {
+                let formattedVal = Number.isInteger(value) ? value : value.toFixed(2);
+                
+                // Sometimes backend fails and sends 0, let's at least show it.
+                // We will append it normally.
+
+                const row = document.createElement('div');
+                row.className = 'metric-row';
+                
+                let unit = '';
+                if(key.includes('mm')) unit = 'mm';
+                else if(key.includes('angle') || key.includes('deg')) unit = '°';
+                else if(key.includes('ratio')) unit = 'ratio';
+
+                row.innerHTML = `
+                    <div class="metric-name">${displayKey}</div>
+                    <div class="metric-val">${formattedVal} <span style="font-size:12px; font-weight:400;">${unit}</span></div>
+                `;
+                numList.appendChild(row);
+            }
+        }
+        
+        if(imagesContainer.children.length === 0) {
+            imagesContainer.style.display = 'none';
+        }
+        if(classGrid.children.length === 0) {
+            classGrid.innerHTML = '<div style="color:#64748b; padding: 20px;">No classifications available.</div>';
         }
     });
-    </script>
-
-</body>
-</html>
+</script>
+{% endblock %}

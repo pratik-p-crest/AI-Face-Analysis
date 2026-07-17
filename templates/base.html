@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QOVES Analysis{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --rail-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-highlight: #94a3b8;
+            --border-color: #f1f5f9;
+            --bar-bg: #e2e8f0;
+            --bar-fill: #94a3b8;
+            --marker-color: #1e293b;
+            --tooltip-bg: #64748b;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* FAR-LEFT RAIL */
+        .rail {
+            width: 200px;
+            background: var(--rail-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .rail-logo {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .rail-logo .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--text-primary);
+        }
+
+        .rail-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .rail-menu li {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .rail-menu li.active {
+            background: #f1f5f9;
+            color: var(--text-primary);
+        }
+
+        .rail-menu li:hover:not(.active) {
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .rail-bottom {
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+        }
+        
+        .rail-bottom .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-highlight);
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+
+        .rail-bottom .date {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 32px 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-menu > li {
+            padding: 12px 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+        
+        .sidebar-menu > li:hover {
+            color: var(--text-primary);
+        }
+
+        .sidebar-menu > li.has-children {
+            color: var(--text-primary);
+        }
+
+        .sidebar-menu > li.has-children::before {
+            content: "v";
+            margin-right: 12px;
+            font-size: 10px;
+            font-family: monospace;
+            transform: scale(1.5, 0.8);
+        }
+
+        .sidebar-menu > li.collapsed::before {
+            content: ">";
+        }
+
+        .sidebar-submenu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-submenu li {
+            padding: 10px 24px 10px 48px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .sidebar-submenu li:hover {
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .sidebar-submenu li.active {
+            background: #ffffff;
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header h1 span {
+            color: var(--text-highlight);
+        }
+
+        .header p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+        }
+        
+        .header p strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* IMAGE CARD */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            min-height: 200px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        
+        .image-card img {
+            max-width: 250px;
+            height: auto;
+            border-radius: 100px;
+        }
+
+        /* BOTTOM SPLIT */
+        .bottom-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .grid-header {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* CLASSIFICATION CARD */
+        .class-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px 20px;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .class-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .class-label {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-highlight);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+            font-weight: 600;
+        }
+
+        .class-value {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* TOOLTIP */
+        .class-card .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: var(--tooltip-bg);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            z-index: 10;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .class-card .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--tooltip-bg) transparent transparent transparent;
+        }
+        
+        .class-card .tooltip .tooltip-title {
+            font-family: monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .class-card:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* CAROUSEL CONTAINER */
+        .carousel-container {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            overflow: hidden;
+            min-height: 350px;
+        }
+        
+        .carousel-nav {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: #cbd5e1;
+            font-size: 14px;
+            z-index: 20;
+            user-select: none;
+        }
+        
+        .carousel-nav .arrow {
+            cursor: pointer;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+        .carousel-nav .arrow:hover {
+            color: var(--text-primary);
+        }
+        
+        .carousel-nav .dot {
+            width: 6px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .carousel-nav .dot.active {
+            background: #94a3b8;
+        }
+
+        .range-card {
+            padding: 24px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--card-bg);
+        }
+        
+        .range-card.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+        .range-card.prev {
+            transform: translateX(-100%);
+        }
+        .range-card.next {
+            transform: translateX(100%);
+        }
+
+        .range-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .range-card h3 .highlight {
+            color: var(--text-highlight);
+        }
+
+        .range-card p.desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+            line-height: 1.5;
+            max-width: 85%;
+        }
+
+        .range-box {
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 24px;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .range-box-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-highlight);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .range-value {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+        
+        .range-value span {
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 2px;
+            color: var(--text-primary);
+        }
+
+        .slider-container {
+            position: relative;
+            height: 40px;
+        }
+
+        .slider-track {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--bar-bg);
+            border-radius: 2px;
+        }
+
+        .slider-fill {
+            position: absolute;
+            bottom: 20px;
+            height: 4px;
+            background: var(--bar-fill);
+            border-radius: 2px;
+        }
+
+        .slider-marker {
+            position: absolute;
+            bottom: 24px;
+            width: 4px;
+            height: 4px;
+            background: var(--marker-color);
+            transform: translateX(-50%);
+            transition: left 0.5s ease-out;
+        }
+        
+        .slider-marker::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 12px;
+            background: var(--bar-fill);
+        }
+
+        .slider-labels {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .slider-labels span {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+
+<!-- FAR-LEFT RAIL -->
+<div class="rail">
+    <div class="rail-logo">
+        <div class="icon"></div>
+        <div class="icon" style="border: none; width:auto; border-radius:0;">&#9702;</div>
+    </div>
+    <ul class="rail-menu">
+        <li class="active">
+            <span style="font-size: 16px;">&#9638;</span> Qoves Report
+        </li>
+        <li>
+            <span style="font-size: 16px;">&#8853;</span> Surgical Report
+        </li>
+        <li>
+            <span style="font-size: 16px;">&#10022;</span> Hairstyle Suggestions
+        </li>
+    </ul>
+    <div class="rail-bottom">
+        <div class="label">NEXT ANALYSIS</div>
+        <div class="date">June 19, 2027</div>
+        <ul class="rail-menu">
+            <li><span style="font-size: 16px;">&#9881;</span> Settings</li>
+            <li><span style="font-size: 16px;">&#8627;</span> Logout</li>
+        </ul>
+    </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="collapsed">Introduction</li>
+        <li class="collapsed">Facial Assessments</li>
+        <li class="has-children">Features Analysis</li>
+        <ul class="sidebar-submenu">
+            <li class="{% if active_page == 'eyebrows' %}active{% endif %}" onclick="window.location.href='/eyebrows'">Eyebrows</li>
+            <li class="{% if active_page == 'eyes' %}active{% endif %}" onclick="window.location.href='/eyes'">Eyes</li>
+            <li class="{% if active_page == 'nose' %}active{% endif %}" onclick="window.location.href='/nose'">Nose</li>
+            <li class="{% if active_page == 'lips' %}active{% endif %}" onclick="window.location.href='/lips'">Lips</li>
+            <li class="{% if active_page == 'cheeks' %}active{% endif %}" onclick="window.location.href='/cheeks'">Cheeks</li>
+            <li class="{% if active_page == 'jaw' %}active{% endif %}" onclick="window.location.href='/jaw'">Jaw</li>
+            <li class="{% if active_page == 'chin' %}active{% endif %}" onclick="window.location.href='/chin'">Chin</li>
+            <li class="{% if active_page == 'hair' %}active{% endif %}" onclick="window.location.href='/hair'">Hair</li>
+            <li class="{% if active_page == 'smile' %}active{% endif %}" onclick="window.location.href='/smile'">Smile</li>
+            <li class="{% if active_page == 'neck' %}active{% endif %}" onclick="window.location.href='/neck'">Neck</li>
+            <li class="{% if active_page == 'ear' %}active{% endif %}" onclick="window.location.href='/ear'">Ear</li>
+            <li class="{% if active_page == 'skin' %}active{% endif %}" onclick="window.location.href='/skin'">Skin</li>
+        </ul>
+        <li class="collapsed">Protocol</li>
+    </ul>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+    {% block content %}{% endblock %}
+</div>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

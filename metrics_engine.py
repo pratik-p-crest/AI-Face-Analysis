@@ -6,7 +6,8 @@ def calculate_all_metrics(face_landmarks, w, h):
     w, h: image width and height
     """
     landmark_points = []
-    for lm in face_landmarks.landmark:
+    lm_list = face_landmarks.landmark if hasattr(face_landmarks, 'landmark') else face_landmarks
+    for lm in lm_list:
         x = int(lm.x * w)
         y = int(lm.y * h)
         landmark_points.append((x, y))
